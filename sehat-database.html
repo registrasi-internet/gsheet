@@ -44,9 +44,11 @@
     <div id="toast-container"></div>
 
     <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-2xl w-full m-auto relative">
-            <span id="edit-timestamp-display" class="absolute top-6 right-6 text-xs text-gray-500 dark:text-slate-400"></span>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Edit Data Pelanggan</h3>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-2xl w-full m-auto">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 mb-6">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Edit Data Pelanggan</h3>
+                <span id="edit-timestamp-display" class="text-xs text-gray-500 dark:text-slate-400"></span>
+            </div>
             <form id="edit-form" class="space-y-4">
                 <input type="hidden" id="edit-row-id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -417,7 +419,7 @@
             function formatWhatsAppLink(number, name, service) {
                 if (!number) return '#';
                 let cleanedNumber = String(number).replace(/[^0-9]/g, '');
-                if (cleanedNumber.startsWith('0')) {
+                if (cleanedNumber.startsWith('o')) {
                     cleanedNumber = '62' + cleanedNumber.substring(1);
                 }
                 const message = `Halo ${name}`;
@@ -613,7 +615,7 @@ Catatan: ${record.Catatan || '-'}
                     case 'ktp':
                         modal = elements.ktpModal;
                         const directKtpUrl = getDirectGdriveLink(record['URL Foto KTP']);
-                        const errorHtml = `<span class=&quot;text-gray-500&quot;>Gambar Tidak Tersedia</span>`;
+                        const errorHtml = `<span class="text-gray-500">Gambar Tidak Tersedia</span>`;
                         modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-lg w-full relative"><button class="modal-cancel-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 class="text-xl font-bold mb-4">KTP: ${record.Nama}</h3><div class="w-full h-64 bg-gray-200 dark:bg-slate-700 flex items-center justify-center rounded"><img src="${directKtpUrl}" class="max-w-full max-h-full object-contain" onerror="this.parentElement.innerHTML = '${errorHtml}'"></div></div>`;
                         modal.classList.remove('hidden');
                         modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
@@ -629,3 +631,5 @@ Catatan: ${record.Catatan || '-'}
     </script>
 </body>
 </html>
+
+
