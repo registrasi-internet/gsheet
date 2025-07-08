@@ -44,7 +44,8 @@
     <div id="toast-container"></div>
 
     <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
-        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-2xl w-full m-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-2xl w-full m-auto relative">
+            <span id="edit-timestamp-display" class="absolute top-6 right-6 text-xs text-gray-500 dark:text-slate-400"></span>
             <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Edit Data Pelanggan</h3>
             <form id="edit-form" class="space-y-4">
                 <input type="hidden" id="edit-row-id">
@@ -109,7 +110,6 @@
                 <div class="flex items-center justify-end gap-3">
                     <button id="theme-toggle-btn" title="Ganti Tema" class="p-2 text-gray-500 dark:text-slate-400 hover:text-[#1390d0] hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"></button>
                     <button id="filter-toggle-btn" title="Filter Data" class="p-2 text-gray-500 dark:text-slate-400 hover:text-[#1390d0] hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"></button>
-                    <button id="export-csv-btn" title="Ekspor ke CSV" class="p-2 text-gray-500 dark:text-slate-400 hover:text-[#1390d0] hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"></button>
                     <button id="refresh-btn" title="Muat Ulang Data" class="p-2 text-gray-500 dark:text-slate-400 hover:text-[#1390d0] hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:cursor-wait"></button>
                 </div>
             </div>
@@ -162,14 +162,13 @@
     </main>
 
     <script type="module">
-        // --- MANAJEMEN TEMA (Tidak berubah) ---
+        // --- MANAJEMEN TEMA & IKON ---
         (() => {
             const themeToggleBtn = document.getElementById('theme-toggle-btn');
             const darkIcon = document.createElement('div');
             darkIcon.innerHTML = '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>';
             const lightIcon = document.createElement('div');
             lightIcon.innerHTML = '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>';
-            
             themeToggleBtn.appendChild(darkIcon);
             themeToggleBtn.appendChild(lightIcon);
             
@@ -180,6 +179,9 @@
             refreshSpinner.innerHTML = `<svg class="w-6 h-6 animate-spin hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             refreshBtn.appendChild(refreshIcon);
             refreshBtn.appendChild(refreshSpinner);
+
+            const filterBtn = document.getElementById('filter-toggle-btn');
+            filterBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>`;
 
             const applyTheme = (theme) => {
                 if (theme === 'dark') {
@@ -206,9 +208,14 @@
         // --- SCRIPT UTAMA DASBOR ---
         document.addEventListener('DOMContentLoaded', function main() {
             // --- KONFIGURASI ---
-            // ⚠️ GANTI DENGAN URL WEB APP ANDA YANG SUDAH DI-DEPLOY ULANG
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyZQpQsBPNpE34wLrecSGitYmiZB8LLZpCijNNUxyggKjPI4iDMb_ESuxI8FSsXwmx/exec"; 
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFZCQdjvL9qRQJvr3xjobdPiClKZ9ui-TJJcbAf2K1LYilhN4zbexjQ7NX5FM2WNZ8/exec"; 
             const ROWS_PER_PAGE = 10;
+
+            // --- DATA CONTOH (FALLBACK) ---
+            const mockData = [
+                { rowId: 1, Timestamp: "2025-07-08T10:00:00.000Z", Nama: "Budi Santoso", NIK: "3271234567890001", "Tgl Lahir": "1990-05-15T00:00:00.000Z", WhatsApp: "081234567890", Email: "budi.s@example.com", Alamat: "Jl. Merdeka No. 10, Jakarta", "Paket Layanan": "Internet 50 Mbps", Catatan: "Pemasangan di pagi hari.", "URL Foto KTP": "https://drive.google.com/uc?export=view&id=1GaWJB2jjc3IOPw0asZdSJVTchfLvDG_O" },
+                { rowId: 2, Timestamp: "2025-07-07T11:30:00.000Z", Nama: "Citra Lestari", NIK: "3271234567890002", "Tgl Lahir": "1992-08-22T00:00:00.000Z", WhatsApp: "082345678901", Email: "citra.l@example.com", Alamat: "Jl. Pahlawan No. 25, Bandung", "Paket Layanan": "Internet 100 Mbps", Catatan: "Router dual band.", "URL Foto KTP": "https://placehold.co/400x250/EFEFEF/333333?text=KTP+Citra" }
+            ];
 
             // --- ELEMEN DOM ---
             const elements = {
@@ -231,13 +238,12 @@
                 filterStartDate: document.getElementById('filter-start-date'),
                 filterEndDate: document.getElementById('filter-end-date'),
                 clearFiltersBtn: document.getElementById('clear-filters-btn'),
-                exportCsvBtn: document.getElementById('export-csv-btn'),
                 toastContainer: document.getElementById('toast-container'),
             };
 
             // --- STATE APLIKASI ---
-            let allDataCache = []; // Cache untuk semua data (digunakan untuk ekspor CSV)
             let debounceTimeout;
+            let currentEditingRecord = null;
             let state = {
                 currentPage: 1,
                 totalRows: 0,
@@ -254,14 +260,14 @@
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ action, payload })
                     });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const result = await response.json();
                     if (result.status === 'error') throw new Error(result.message);
                     return result;
                 } catch (error) {
                     console.error(`Error during action '${action}':`, error);
                     showToast(error.message, 'error');
-                    throw error; // Re-throw untuk ditangani oleh pemanggil
+                    throw error;
                 }
             }
 
@@ -276,13 +282,14 @@
                         filters: state.filters
                     };
                     const result = await fetchFromScript('read', payload);
-                    
-                    allDataCache = result.data; // Simpan data halaman ini untuk ekspor
-                    state.totalRows = result.totalRows;
                     renderTable(result.data);
+                    state.totalRows = result.totalRows;
                     renderPagination();
                 } catch (error) {
-                    elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-red-500 dark:text-red-400">Gagal memuat data. Periksa konsol untuk detail.</td></tr>`;
+                    showToast('Gagal terhubung ke server. Menampilkan data contoh.', 'error');
+                    renderTable(mockData);
+                    state.totalRows = mockData.length;
+                    renderPagination();
                 } finally {
                     toggleLoading(false, elements.refreshBtn);
                 }
@@ -300,31 +307,37 @@
                         elements.filterService.appendChild(option);
                     });
                 } catch (error) {
-                    // Gagal memuat filter bukan masalah kritis, biarkan kosong
-                    console.error("Gagal memuat filter layanan:", error);
+                     const mockServices = [...new Set(mockData.map(item => item['Paket Layanan']))];
+                     elements.filterService.innerHTML = '<option value="">Semua Paket</option>';
+                     mockServices.sort().forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service;
+                        option.textContent = service;
+                        elements.filterService.appendChild(option);
+                    });
                 }
             }
 
             // --- FUNGSI RENDER UI ---
             function renderTable(registrations) {
                 elements.tableBody.innerHTML = '';
-                if (registrations.length === 0) {
+                if (!registrations || registrations.length === 0) {
                     elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-12"><p class="text-gray-500 dark:text-slate-400">Tidak ada data yang cocok.</p></td></tr>`;
                     return;
                 }
                 registrations.forEach(reg => {
                     const tr = document.createElement('tr');
                     tr.className = "group hover:bg-gray-50 dark:hover:bg-slate-700";
-                    // Gunakan rowId sebagai identifier unik
                     tr.dataset.rowId = reg.rowId; 
                     tr.dataset.record = JSON.stringify(reg);
 
                     const registrationDate = new Date(reg.Timestamp).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                     const whatsappLink = formatWhatsAppLink(reg.WhatsApp, reg.Nama, reg['Paket Layanan']);
+                    const birthDate = formatDate(reg['Tgl Lahir']);
 
                     tr.innerHTML = `
-                        <td class="px-6 py-4" data-label="Pelanggan"><div class="cell-content-stacked"><div class="text-sm font-medium text-gray-900 dark:text-white">${reg.Nama || '-'}</div><div class="text-sm text-gray-500 dark:text-slate-400">${reg.NIK || '-'}</div><div class="text-sm text-gray-500 dark:text-slate-400">${reg['Tgl Lahir'] || '-'}</div></div></td>
-                        <td class="px-6 py-4" data-label="Kontak"><div class="cell-content-stacked space-y-1"><div class="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 text-green-500 flex-shrink-0"><path fill-rule="evenodd" d="M12.5 2.5A2.5 2.5 0 0 0 10 0H6a2.5 2.5 0 0 0-2.5 2.5v11A2.5 2.5 0 0 0 6 16h4a2.5 2.5 0 0 0 2.5-2.5v-11ZM10.5 12h-5V4h5v8Z" clip-rule="evenodd" /></svg><a href="${whatsappLink}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600 dark:text-green-400" title="Kirim pesan WhatsApp">${reg.WhatsApp || '-'}</a></div><div class="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 text-slate-400 flex-shrink-0"><path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v7A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 13.5 3h-11ZM2 4.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5v1.269l-5.245 3.497a1.5 1.5 0 0 1-1.51 0L2 5.769V4.5Zm11.5 8h-11a.5.5 0 0 1-.5-.5V6.31l5.022 3.348a2.5 2.5 0 0 0 2.516 0L14 6.31v6.19a.5.5 0 0 1-.5.5Z" /></svg><span>${reg.Email || '-'}</span></div></div></td>
+                        <td class="px-6 py-4" data-label="Pelanggan"><div class="cell-content-stacked"><div class="text-sm font-medium text-gray-900 dark:text-white">${reg.Nama || '-'}</div><div class="text-sm text-gray-500 dark:text-slate-400">${reg.NIK || '-'}</div><div class="text-sm text-gray-500 dark:text-slate-400">${birthDate}</div></div></td>
+                        <td class="px-6 py-4" data-label="Kontak"><div class="cell-content-stacked space-y-1"><div class="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.614-1.486L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.89-5.451 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.906 6.031l-1.214 4.425 4.525-1.189z"/></svg><a href="${whatsappLink}" target="_blank" rel="noopener noreferrer" class="hover:underline text-green-600 dark:text-green-400" title="Kirim pesan WhatsApp">${reg.WhatsApp || '-'}</a></div><div class="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 text-slate-400 flex-shrink-0"><path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v7A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 13.5 3h-11ZM2 4.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5v1.269l-5.245 3.497a1.5 1.5 0 0 1-1.51 0L2 5.769V4.5Zm11.5 8h-11a.5.5 0 0 1-.5-.5V6.31l5.022 3.348a2.5 2.5 0 0 0 2.516 0L14 6.31v6.19a.5.5 0 0 1-.5.5Z" /></svg><span>${reg.Email || '-'}</span></div></div></td>
                         <td class="px-6 py-4 text-sm text-gray-500 dark:text-slate-400" data-label="Alamat"><div class="max-w-xs whitespace-normal" title="${reg.Alamat || ''}">${reg.Alamat || '-'}</div></td>
                         <td class="px-6 py-4 text-sm font-medium text-gray-800 dark:text-slate-200" data-label="Layanan">${reg['Paket Layanan'] || '-'}</td>
                         <td class="px-6 py-4 text-sm text-gray-500 dark:text-slate-400" data-label="Catatan"><div class="max-w-xs whitespace-normal" title="${reg.Catatan || ''}">${reg.Catatan || '-'}</div></td>
@@ -360,10 +373,10 @@
                 button.disabled = isLoading;
                 const text = button.querySelector('.btn-text');
                 const spinner = button.querySelector('.btn-spinner') || button.querySelector('.animate-spin');
-                if (text && spinner) { // Untuk tombol edit
+                if (text && spinner) {
                     text.classList.toggle('hidden', isLoading);
                     spinner.classList.toggle('hidden', !isLoading);
-                } else if (spinner) { // Untuk tombol refresh
+                } else if (spinner) {
                     const icon = button.querySelector('svg:not(.animate-spin)');
                     icon.classList.toggle('hidden', isLoading);
                     spinner.classList.toggle('hidden', !isLoading);
@@ -378,19 +391,94 @@
                 setTimeout(() => toast.classList.add('show'), 10);
                 setTimeout(() => {
                     toast.classList.remove('show');
-                    setTimeout(() => toast.remove(), 300);
+                    setTimeout(() => toast.remove(), 3000);
                 }, 3000);
             }
 
-            function formatWhatsAppLink(number, name, service) { /* ... sama seperti sebelumnya ... */ return '#'; }
-            function copyRecordToClipboard(record) { /* ... sama seperti sebelumnya ... */ }
-            function exportToCSV() { /* ... sama seperti sebelumnya, menggunakan allDataCache ... */ }
+            function formatDate(dateString) {
+                if (!dateString) return '-';
+                try {
+                    const date = new Date(dateString);
+                    if (isNaN(date.getTime())) return dateString;
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                } catch (e) {
+                    return dateString || '-';
+                }
+            }
+
+            function formatWhatsAppLink(number, name, service) {
+                if (!number) return '#';
+                let cleanedNumber = String(number).replace(/[^0-9]/g, '');
+                if (cleanedNumber.startsWith('0')) {
+                    cleanedNumber = '62' + cleanedNumber.substring(1);
+                }
+                const message = `Halo ${name}`;
+                return `https://wa.me/${cleanedNumber}?text=${encodeURIComponent(message)}`;
+            }
+
+            function getDirectGdriveLink(url) {
+                if (typeof url !== 'string' || !url.includes('drive.google.com')) {
+                    return url; 
+                }
+                const regex = /\/d\/(.*?)(?:\/view|\?usp=sharing|\?usp=drivesdk|$)/;
+                const match = url.match(regex);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    return `https://lh3.googleusercontent.com/d/${fileId}`;
+                }
+                return url; 
+            }
+
+            function copyRecordToClipboard(record) {
+                const birthDate = formatDate(record['Tgl Lahir']);
+                const textToCopy = `
+Nama: ${record.Nama || '-'}
+NIK: ${record.NIK || '-'}
+Tgl Lahir: ${birthDate}
+No. WhatsApp: ${record.WhatsApp || '-'}
+Email: ${record.Email || '-'}
+Alamat: ${record.Alamat || '-'}
+Paket Layanan: ${record['Paket Layanan'] || '-'}
+Catatan: ${record.Catatan || '-'}
+                `.trim().replace(/^\s+/gm, '');
+
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '-9999px';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showToast('Data disalin.', 'success');
+                    } else {
+                        showToast('Gagal menyalin data.', 'error');
+                    }
+                } catch (err) {
+                    console.error('Gagal menyalin data:', err);
+                    showToast('Gagal menyalin data.', 'error');
+                }
+
+                document.body.removeChild(textArea);
+            }
 
             async function handleUpdate(e) {
                 e.preventDefault();
+                if (!currentEditingRecord) return;
+
                 toggleLoading(true, elements.submitEditBtn);
                 const rowId = document.getElementById('edit-row-id').value;
-                const updatedData = {
+                
+                const payloadData = {
+                    'Timestamp': currentEditingRecord.Timestamp,
+                    'URL Foto KTP': currentEditingRecord['URL Foto KTP'],
                     'Nama': document.getElementById('edit-nama').value,
                     'NIK': document.getElementById('edit-nik').value,
                     'Tgl Lahir': document.getElementById('edit-tgl_lahir').value,
@@ -402,14 +490,15 @@
                 };
                 
                 try {
-                    await fetchFromScript('update', { rowId: parseInt(rowId), data: updatedData });
+                    await fetchFromScript('update', { rowId: parseInt(rowId), data: payloadData });
                     showToast('Data berhasil diperbarui.', 'success');
                     elements.editModal.classList.add('hidden');
                     fetchRegistrations();
                 } catch (error) {
-                    // Error sudah ditangani di fetchFromScript
+                    // Error sudah ditangani
                 } finally {
                     toggleLoading(false, elements.submitEditBtn);
+                    currentEditingRecord = null;
                 }
             }
 
@@ -428,7 +517,6 @@
             // --- SETUP EVENT LISTENERS ---
             function setupEventListeners() {
                 elements.refreshBtn.addEventListener('click', fetchRegistrations);
-                elements.exportCsvBtn.addEventListener('click', () => { /* ... sama seperti sebelumnya ... */ });
 
                 elements.searchInput.addEventListener('input', (e) => {
                     clearTimeout(debounceTimeout);
@@ -452,12 +540,8 @@
                 document.querySelectorAll('.sortable').forEach(header => {
                     header.addEventListener('click', () => {
                         const column = header.dataset.sort;
-                        if (state.sort.column === column) {
-                            state.sort.order = state.sort.order === 'asc' ? 'desc' : 'asc';
-                        } else {
-                            state.sort.column = column;
-                            state.sort.order = 'asc';
-                        }
+                        state.sort.order = (state.sort.column === column && state.sort.order === 'asc') ? 'desc' : 'asc';
+                        state.sort.column = column;
                         fetchRegistrations();
                     });
                 });
@@ -485,17 +569,28 @@
                 });
 
                 elements.editForm.addEventListener('submit', handleUpdate);
-                elements.cancelEditBtn.addEventListener('click', () => elements.editModal.classList.add('hidden'));
+                elements.cancelEditBtn.addEventListener('click', () => {
+                    elements.editModal.classList.add('hidden');
+                    currentEditingRecord = null;
+                });
             }
             
             function showModal(type, record) {
                 let modal;
                 switch (type) {
                     case 'edit':
+                        currentEditingRecord = record;
+                        const timestampDisplay = document.getElementById('edit-timestamp-display');
+                        if (record.Timestamp) {
+                            const regDate = new Date(record.Timestamp).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+                            timestampDisplay.textContent = `Registrasi: ${regDate} WIB`;
+                        } else {
+                            timestampDisplay.textContent = '';
+                        }
                         document.getElementById('edit-row-id').value = record.rowId;
                         document.getElementById('edit-nama').value = record.Nama || '';
                         document.getElementById('edit-nik').value = record.NIK || '';
-                        document.getElementById('edit-tgl_lahir').value = record['Tgl Lahir'] || '';
+                        document.getElementById('edit-tgl_lahir').value = formatDate(record['Tgl Lahir']);
                         document.getElementById('edit-whatsapp').value = record.WhatsApp || '';
                         document.getElementById('edit-email').value = record.Email || '';
                         document.getElementById('edit-alamat').value = record.Alamat || '';
@@ -505,14 +600,16 @@
                         break;
                     case 'delete':
                         modal = elements.deleteModal;
-                        modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-sm w-full text-center"><h3 class="text-lg font-medium text-gray-900 dark:text-white mt-5">Hapus Data</h3><p class="mt-2 text-sm text-gray-500 dark:text-slate-400">Yakin ingin menghapus data untuk <strong>${record.Nama}</strong>?</p><div class="mt-6 flex justify-center space-x-3"><button class="modal-cancel-btn px-4 py-2 bg-gray-200 rounded-md">Batal</button><button class="modal-confirm-delete-btn px-4 py-2 bg-red-600 text-white rounded-md">Ya, Hapus</button></div></div>`;
+                        modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-sm w-full text-center"><h3 class="text-lg font-medium text-gray-900 dark:text-white mt-5">Hapus Data</h3><p class="mt-2 text-sm text-gray-500 dark:text-slate-400">Yakin ingin menghapus data untuk <strong>${record.Nama}</strong>?</p><div class="mt-6 flex justify-center space-x-3"><button class="modal-cancel-btn px-4 py-2 bg-gray-200 dark:bg-slate-600 rounded-md">Batal</button><button class="modal-confirm-delete-btn px-4 py-2 bg-red-600 text-white rounded-md">Ya, Hapus</button></div></div>`;
                         modal.classList.remove('hidden');
                         modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
                         modal.querySelector('.modal-confirm-delete-btn').onclick = () => handleDelete(record.rowId);
                         break;
                     case 'ktp':
                         modal = elements.ktpModal;
-                        modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-lg w-full relative"><button class="modal-cancel-btn absolute top-3 right-3 text-gray-400"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 class="text-xl font-bold mb-4">KTP: ${record.Nama}</h3><div class="w-full h-64 bg-gray-200 flex items-center justify-center"><img src="${record['URL Foto KTP'] || ''}" class="max-w-full max-h-full object-contain" onerror="this.parentElement.innerHTML = '<span>Gambar Tidak Tersedia</span>';"></div></div>`;
+                        const directKtpUrl = getDirectGdriveLink(record['URL Foto KTP']);
+                        const errorHtml = `<span class=&quot;text-gray-500&quot;>Gambar Tidak Tersedia</span>`;
+                        modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-lg w-full relative"><button class="modal-cancel-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><h3 class="text-xl font-bold mb-4">KTP: ${record.Nama}</h3><div class="w-full h-64 bg-gray-200 dark:bg-slate-700 flex items-center justify-center rounded"><img src="${directKtpUrl}" class="max-w-full max-h-full object-contain" onerror="this.parentElement.innerHTML = '${errorHtml}'"></div></div>`;
                         modal.classList.remove('hidden');
                         modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
                         break;
@@ -520,13 +617,9 @@
             }
 
             // --- INISIALISASI ---
-            if (!SCRIPT_URL || SCRIPT_URL.includes("GANTI_DENGAN_URL")) {
-                 showToast('URL Google Apps Script belum dikonfigurasi!', 'error');
-            } else {
-                fetchRegistrations();
-                populateServiceFilter();
-                setupEventListeners();
-            }
+            fetchRegistrations();
+            populateServiceFilter();
+            setupEventListeners();
         });
     </script>
 </body>
