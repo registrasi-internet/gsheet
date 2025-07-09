@@ -369,7 +369,7 @@
             function renderPagination() {
                 const from = (state.currentPage - 1) * ROWS_PER_PAGE + 1;
                 const to = Math.min(from + ROWS_PER_PAGE - 1, state.totalRows);
-                elements.paginationInfo.textContent = `Menampilkan ${from}-${to} dari ${state.totalRows} data`;
+                elements.paginationInfo.textContent = `${from}-${to} dari ${state.totalRows} data`;
                 elements.prevPageBtn.disabled = state.currentPage === 1;
                 elements.nextPageBtn.disabled = to >= state.totalRows;
                 elements.paginationControls.style.display = state.totalRows <= ROWS_PER_PAGE ? 'none' : 'flex';
