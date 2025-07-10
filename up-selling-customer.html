@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Up-Selling Customer 1.5</title>
+    <!-- Memuat Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Font Inter dari Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Memuat ikon Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .filter-btn.active { background-color: #0369a1; color: white; box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.2); }
+        select:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        /* --- CSS UNTUK TABEL RESPONSIVE --- */
+        /* Terapkan gaya ini hanya pada layar kecil (di bawah 768px) */
+        @media screen and (max-width: 767px) {
+            /* Sembunyikan header tabel standar */
+            table thead {
+                display: none;
+            }
+            /* Ubah elemen tabel menjadi block agar bisa ditata ulang */
+            table, table tbody, table tr, table td {
+                display: block;
+                width: 100%;
+            }
+            /* Setiap baris (tr) akan menjadi seperti kartu */
+            table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb; /* border-gray-200 */
+                border-radius: 0.5rem; /* rounded-lg */
+                padding: 0.25rem;
+                box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            }
+            /* Setiap sel (td) akan menjadi baris di dalam kartu */
+            table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem;
+                text-align: right;
+                border-bottom: 1px solid #f3f4f6; /* border-gray-100 */
+            }
+            /* Hapus garis bawah untuk sel terakhir di kartu */
+            table tr td:last-child {
+                border-bottom: none;
+            }
+            /* Buat label dari atribut data-label */
+            table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                text-align: left;
+                padding-right: 1rem;
+                color: #374151; /* text-gray-700 */
+            }
+            /* Pastikan elemen input dan tombol di kolom Progress & Aksi memiliki ruang yang cukup */
+            table td[data-label="Progress"] > *,
+            table td[data-label="Aksi"] > * {
+                flex-basis: 60%;
+            }
+        }
+        
+        /* Tambahkan gaya untuk mode gelap pada layar kecil */
+        @media (prefers-color-scheme: dark) {
+            @media screen and (max-width: 767px) {
+                table tr {
+                    border-color: #374151; /* dark:border-gray-700 */
+                }
+                table td {
+                    border-color: #1f2937; /* dark:border-gray-800 */
+                }
+                table td::before {
+                    color: #d1d5db; /* dark:text-gray-300 */
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-sky-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white flex items-center"><i class="fas fa-users text-sky-500 mr-4"></i>Up-Selling Customer</h1>
+                    <p class="text-md text-gray-600 dark:text-gray-400 mt-2">Kelola data customer Anda dengan efisien.</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <label for="sheet-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pilih Sheet</label>
+                    <select id="sheet-selector" class="w-full sm:w-64 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"></select>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div id="card-today" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
+                <div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa Hari Ini</div>
+                    <div id="count-today" class="text-3xl font-bold text-sky-600 dark:text-sky-400">0</div>
+                </div>
+                <div class="bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-day fa-lg"></i></div>
+            </div>
+            <div id="card-7days" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
+                <div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa dalam 7 Hari</div>
+                    <div id="count-7days" class="text-3xl font-bold text-orange-500 dark:text-orange-400">0</div>
+                </div>
+                <div class="bg-orange-100 dark:bg-orange-500/20 text-orange-500 dark:text-orange-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-week fa-lg"></i></div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div class="relative md:col-span-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-search text-gray-400"></i></span>
+                    <input type="text" id="search-box" placeholder="Cari nama atau no. telepon..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all">
+                </div>
+                <div class="md:col-span-2 flex flex-wrap justify-center md:justify-end gap-2">
+                    <button id="show-all-btn" class="filter-btn active flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-list-ul"></i><span>Semua</span></button>
+                    <button id="filter-today-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-day"></i><span>Filter Hari Ini</span></button>
+                    <button id="filter-7days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-week"></i><span>Filter 7 Hari</span></button>
+                </div>
+            </div>
+        </div>
+        <div id="filter-info" class="text-center mb-6 text-gray-500 dark:text-gray-400 h-5 transition-opacity duration-300"></div>
+
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl overflow-hidden">
+            <div id="loader" class="p-12 text-center"><div class="flex justify-center items-center space-x-3"><svg class="animate-spin h-6 w-6 text-sky-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-lg font-medium text-gray-600 dark:text-gray-300">Memuat data...</span></div></div>
+            <div id="error-message" class="hidden p-8 text-center"><p class="text-lg font-medium text-red-500">Gagal memuat data.</p></div>
+            <div id="table-container" class="overflow-x-auto"></div>
+            <div id="pagination-controls" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between"></div>
+        </div>
+
+        <footer class="text-center mt-10 text-sm text-gray-500 dark:text-gray-400"><p>&copy; 2025 Up-Selling Customer. Dibuat dengan Penuh Semangat.</p></footer>
+    </div>
+
+    <script>
+    window.updateDropdownColor = function(selectElement) {
+        const selectedValue = selectElement.value;
+        selectElement.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'bg-gray-200', 'dark:bg-gray-700');
+        if (selectedValue === 'DONE WHATSAPP') {
+            selectElement.classList.add('bg-green-500', 'text-white');
+        } else if (selectedValue === 'INVALID NUMBER') {
+            selectElement.classList.add('bg-red-500', 'text-white');
+        } else {
+            selectElement.classList.add('bg-gray-200', 'dark:bg-gray-700');
+        }
+    }
+
+    async function updateProgressInSheet(sheetName, rowIndex, newValue, elementId) {
+        const webAppUrl = document.getElementById('sheet-selector').dataset.webAppUrl;
+        const selectElement = document.getElementById(elementId);
+        
+        if (selectElement) selectElement.disabled = true;
+        console.log(`Mengirim update ke sheet '${sheetName}' untuk baris ${rowIndex}: ${newValue}`);
+
+        const formData = new FormData();
+        formData.append('sheetName', sheetName);
+        formData.append('rowIndex', rowIndex);
+        formData.append('newValue', newValue);
+
+        try {
+            const response = await fetch(webAppUrl, {
+                method: 'POST',
+                body: formData
+            });
+            console.log("Permintaan update berhasil dikirim!");
+        } catch (error) {
+            console.error('Gagal mengirim update ke Google Sheet:', error);
+            alert("Gagal memperbarui status. Periksa koneksi internet Anda.");
+        } finally {
+            if (selectElement) selectElement.disabled = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- KONFIGURASI ---
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbyrxz98CyTW4dJLEkaf6SwG-5I9jyKNOyJlWnl85nlzQKFo4lRUadgXFDQNjxNrt_lzpA/exec';
+        const ROWS_PER_PAGE = 11;
+        const columnsToDisplay = [
+            { header: 'Nama Lengkap', key: 'bp_fullname' },
+            { header: 'No. WhstApp', key: 'bp_phone' },
+            { header: 'Expired Date', key: 'expireddate' },
+            { header: 'Progress', key: 'progress' } 
+        ];
+
+        // --- STATE APLIKASI ---
+        let allRowsData = [];
+        let filteredAndSearchedData = [];
+        let columnIndexes = {};
+        let currentPage = 1;
+        let activeFilter = 'all';
+        let currentSheetName = '';
+        let serverTodayString = '';
+
+        // --- ELEMEN UI ---
+        const ui = {
+            loader: document.getElementById('loader'),
+            errorMessage: document.getElementById('error-message'),
+            tableContainer: document.getElementById('table-container'),
+            paginationControls: document.getElementById('pagination-controls'),
+            searchBox: document.getElementById('search-box'),
+            sheetSelector: document.getElementById('sheet-selector'),
+            cards: { today: document.getElementById('card-today'), sevenDays: document.getElementById('card-7days') },
+            counts: { today: document.getElementById('count-today'), sevenDays: document.getElementById('count-7days') },
+            buttons: { showAll: document.getElementById('show-all-btn'), filterToday: document.getElementById('filter-today-btn'), filter7Days: document.getElementById('filter-7days-btn') }
+        };
+        
+        ui.sheetSelector.dataset.webAppUrl = webAppUrl;
+
+        // --- FUNGSI-FUNGSI LOGIKA APLIKASI ---
+        async function initializeApp() {
+            try {
+                const response = await fetch(webAppUrl);
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                
+                const result = await response.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                
+                serverTodayString = result.todayString;
+                const allSheetNames = result.sheets;
+                if (!allSheetNames || allSheetNames.length === 0) throw new Error("Tidak ada sheet yang ditemukan di spreadsheet.");
+
+                // Saring sheet yang namanya diawali dengan "MASTER" (tidak case-sensitive)
+                const filteredSheetNames = allSheetNames.filter(name => !name.toUpperCase().startsWith('MASTER'));
+
+                if (filteredSheetNames.length === 0) {
+                    throw new Error("Tidak ada sheet data yang valid untuk ditampilkan (semua sheet adalah MASTER atau sheet kosong).");
+                }
+
+                populateSheetSelector(filteredSheetNames);
+                
+                // Alih-alih menggunakan data awal, kita panggil data untuk sheet pertama yang sudah disaring
+                // Ini memastikan data dari sheet MASTER tidak pernah diproses saat awal
+                await fetchAndProcessData(filteredSheetNames[0]);
+
+            } catch (error) {
+                console.error("Gagal menginisialisasi aplikasi:", error);
+                ui.loader.style.display = 'none';
+                ui.errorMessage.innerHTML = `<p class='text-lg font-medium text-red-500'>Inisialisasi Gagal: ${error.message}</p>`;
+                ui.errorMessage.style.display = 'block';
+            }
+        }
+
+        function processData(rawData, sheetName) {
+            currentSheetName = sheetName;
+            const originalHeaders = rawData.shift().map(h => h.toLowerCase().trim().replace(/^"|"$/g, '').replace(/\s+/g, ''));
+            
+            allRowsData = rawData.map((row, index) => ({
+                rowIndex: index + 2,
+                data: row
+            }));
+
+            columnsToDisplay.forEach(col => {
+                columnIndexes[col.key] = originalHeaders.findIndex(h => h === col.key);
+            });
+            
+            const requiredKeys = ['bp_fullname', 'bp_phone', 'expireddate'];
+            const missingKeys = requiredKeys.filter(key => columnIndexes[key] === -1);
+            if (missingKeys.length > 0) {
+                throw new Error(`Kolom wajib (${missingKeys.join(', ').toUpperCase()}) tidak ditemukan di sheet '${sheetName}'.`);
+            }
+            
+            ui.loader.style.display = 'none';
+            updateSummaryCards();
+            updateDisplay();
+        }
+
+        function populateSheetSelector(sheetNames) {
+            ui.sheetSelector.innerHTML = '';
+            sheetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                ui.sheetSelector.appendChild(option);
+            });
+        }
+
+        async function fetchAndProcessData(sheetName) {
+            ui.loader.style.display = 'flex';
+            ui.tableContainer.innerHTML = '';
+            ui.errorMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${webAppUrl}?sheet=${encodeURIComponent(sheetName)}`);
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                
+                const result = await response.json();
+                if (result.status !== 'success') throw new Error(result.message);
+
+                serverTodayString = result.todayString;
+                processData(result.data, sheetName);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                ui.loader.style.display = 'none';
+                ui.errorMessage.innerHTML = `<p class='text-lg font-medium text-red-500'>Gagal Memuat Data: ${error.message}</p>`;
+                ui.errorMessage.style.display = 'block';
+            }
+        }
+
+        function updateDisplay() {
+            let data = filterData(allRowsData, activeFilter);
+            const searchTerm = ui.searchBox.value.toLowerCase();
+            if (searchTerm) {
+                data = data.filter(item => {
+                    const row = item.data;
+                    const name = (row[columnIndexes.bp_fullname] || '').toLowerCase();
+                    const phone = (row[columnIndexes.bp_phone] || '').toLowerCase();
+                    return name.includes(searchTerm) || phone.includes(searchTerm);
+                });
+            }
+            filteredAndSearchedData = data;
+            if (currentPage > Math.ceil(filteredAndSearchedData.length / ROWS_PER_PAGE)) {
+                currentPage = 1;
+            }
+            renderTable(getCurrentPageData());
+            renderPagination();
+            updateFilterButtons();
+        }
+
+        function updateSummaryCards() {
+            ui.counts.today.textContent = filterData(allRowsData, 'today').length;
+            ui.counts.sevenDays.textContent = filterData(allRowsData, '7days').length;
+        }
+
+        function renderTable(dataRows) {
+            ui.tableContainer.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'w-full text-sm text-left text-gray-600 dark:text-gray-300';
+            
+            const thead = table.createTHead();
+            thead.className = 'text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-100 dark:bg-gray-900/50';
+            const headerRow = thead.insertRow();
+            columnsToDisplay.forEach(col => headerRow.insertAdjacentHTML('beforeend', `<th scope="col" class="px-6 py-4 font-semibold whitespace-nowrap">${col.header}</th>`));
+            headerRow.insertAdjacentHTML('beforeend', '<th scope="col" class="px-6 py-4 font-semibold text-center">Aksi</th>');
+
+            const tbody = table.createTBody();
+            if (dataRows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${columnsToDisplay.length + 1}" class="text-center py-16 text-gray-500"><i class="fas fa-box-open fa-2x mb-3"></i><p>Tidak ada data yang ditemukan.</p></td></tr>`;
+            } else {
+                dataRows.forEach((item) => {
+                    const tr = tbody.insertRow();
+                    const originalRowIndex = item.rowIndex;
+                    const rowData = item.data;
+                    tr.className = 'bg-white dark:bg-gray-800 md:border-b md:border-gray-200 md:dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200';
+                    
+                    columnsToDisplay.forEach((col) => {
+                        const cell = tr.insertCell();
+                        cell.className = 'px-6 py-4 md:whitespace-nowrap';
+                        cell.dataset.label = col.header; // Tambahkan atribut data-label
+                        
+                        if (col.key === 'progress') {
+                            const progressValue = columnIndexes.progress !== -1 ? (rowData[columnIndexes.progress] || '').trim().toUpperCase() : '';
+                            let bgColor = 'bg-gray-200 dark:bg-gray-700';
+                            let textColor = '';
+                            if (progressValue === 'DONE WHATSAPP') { bgColor = 'bg-green-500'; textColor = 'text-white'; } 
+                            else if (progressValue === 'INVALID NUMBER') { bgColor = 'bg-red-500'; textColor = 'text-white'; }
+                            
+                            const selectId = `progress-select-${currentSheetName}-${originalRowIndex}`;
+                            cell.innerHTML = `
+                                <select id="${selectId}" class="p-2 rounded-md border-0 ${bgColor} ${textColor} text-xs font-semibold transition-colors duration-200 appearance-none text-center w-full" 
+                                        onchange="updateDropdownColor(this); updateProgressInSheet('${currentSheetName}', ${originalRowIndex}, this.value, '${selectId}');">
+                                    <option value="" ${progressValue === '' ? 'selected' : ''}>Pilih Status</option>
+                                    <option value="DONE WHATSAPP" ${progressValue === 'DONE WHATSAPP' ? 'selected' : ''}>DONE WHATSAPP</option>
+                                    <option value="INVALID NUMBER" ${progressValue === 'INVALID NUMBER' ? 'selected' : ''}>INVALID NUMBER</option>
+                                </select>
+                            `;
+                        } else {
+                            cell.textContent = String(rowData[columnIndexes[col.key]] || 'N/A').trim().replace(/^"|"$/g, '');
+                        }
+                    });
+                    
+                    const phoneNumber = rowData[columnIndexes.bp_phone];
+                    const fullName = rowData[columnIndexes.bp_fullname] || '';
+                    const expiryDate = rowData[columnIndexes.expireddate] || '';
+                    const actionCell = tr.insertCell();
+                    actionCell.dataset.label = 'Aksi'; // Tambahkan atribut data-label
+                    actionCell.className = 'px-6 py-4 md:text-center';
+
+                    if (phoneNumber) {
+                        const messageTemplate = `*Halo ${fullName} pelanggan setia Biznet* \n\nKami ingin mengingatkan bahwa jatuh tempo pembayaran tagihan Biznet Anda adalah pada *${expiryDate}*.\n\nSaat ini tersedia promo spesial perpanjangan layanan:\nBayar 3 bulan > gratis 1 bulan\nBayar 6 bulan > gratis 2 bulan\nBayar 9 bulan > gratis 3 bulan\nBayar 12 bulan > gratis 5 bulan\nDengan perpanjangan lebih lama, Anda bisa hemat lebih banyak dan tidak perlu repot bayar bulanan.\n\nPaket 12+5 adalah yang paling hemat—bayar 12 bulan, gratis hampir setengah tahun!\nJika sudah melakukan pembayaran, silakan abaikan pesan ini.\n\nTapi kalau tertarik dengan promo ini, cukup balas pesan ini untuk info lebih lanjut. \nTerima kasih atas kepercayaannya menggunakan Biznet!`;
+                        const encodedMessage = encodeURIComponent(messageTemplate);
+                        actionCell.innerHTML = `<a href="https://wa.me/${formatPhoneNumber(phoneNumber)}?text=${encodedMessage}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-xs shadow-sm transition-all duration-200 transform hover:scale-110 w-full"><i class="fab fa-whatsapp mr-2"></i>Follow Up</a>`;
+                    }
+                });
+            }
+            ui.tableContainer.appendChild(table);
+        }
+
+        function renderPagination() {
+            const totalRows = filteredAndSearchedData.length;
+            const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
+            ui.paginationControls.innerHTML = '';
+            if (totalPages <= 1) return;
+            const startRow = (currentPage - 1) * ROWS_PER_PAGE + 1;
+            const endRow = Math.min(currentPage * ROWS_PER_PAGE, totalRows);
+            const summaryHTML = `<span class="text-sm text-gray-500 mb-2 sm:mb-0">Menampilkan ${startRow}-${endRow} dari ${totalRows} data</span>`;
+            const prevButton = `<button data-page="prev" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1 rounded-md text-sm font-semibold transition-colors ${currentPage === 1 ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gray-300 dark:bg-gray-600 hover:bg-sky-500 hover:text-white'}"><i class="fas fa-chevron-left"></i></button>`;
+            const nextButton = `<button data-page="next" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1 rounded-md text-sm font-semibold transition-colors ${currentPage === totalPages ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gray-300 dark:bg-gray-600 hover:bg-sky-500 hover:text-white'}"><i class="fas fa-chevron-right"></i></button>`;
+            ui.paginationControls.innerHTML = `${summaryHTML}<div class="flex items-center gap-2">${prevButton}${nextButton}</div>`;
+        }
+        
+        function updateFilterButtons() {
+            Object.values(ui.buttons).forEach(btn => btn.classList.remove('active'));
+            if (activeFilter === 'all') ui.buttons.showAll.classList.add('active');
+            if (activeFilter === 'today') ui.buttons.filterToday.classList.add('active');
+            if (activeFilter === '7days') ui.buttons.filter7Days.classList.add('active');
+        }
+
+        function filterData(data, filterType) {
+            if (!serverTodayString && (filterType === 'today' || filterType === '7days')) {
+                console.warn("Mencoba filter tanggal sebelum tanggal server diterima.");
+                return [];
+            }
+
+            if (filterType === 'today') {
+                return data.filter(item => {
+                    const cellDate = item.data[columnIndexes.expireddate];
+                    return cellDate === serverTodayString;
+                });
+            }
+            if (filterType === '7days') {
+                const dateList = [];
+                const parts = serverTodayString.split('-').map(Number);
+                const startDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(startDate);
+                    d.setUTCDate(d.getUTCDate() + i);
+                    dateList.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
+                }
+                return data.filter(item => {
+                    const cellDate = item.data[columnIndexes.expireddate];
+                    return dateList.includes(cellDate);
+                });
+            }
+            return data;
+        }
+
+        function getCurrentPageData() {
+            const start = (currentPage - 1) * ROWS_PER_PAGE;
+            return filteredAndSearchedData.slice(start, start + ROWS_PER_PAGE);
+        }
+        
+        function formatPhoneNumber(phone) {
+            const cleaned = String(phone).trim().replace(/\D/g, '');
+            if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
+            if (cleaned.startsWith('62')) return cleaned;
+            if (cleaned.startsWith('8') && cleaned.length >= 9) return '62' + cleaned;
+            return cleaned;
+        }
+
+        // --- EVENT LISTENERS ---
+        ui.searchBox.addEventListener('input', () => { currentPage = 1; updateDisplay(); });
+        
+        Object.values(ui.buttons).forEach(button => button.addEventListener('click', (e) => {
+            const newFilter = e.currentTarget.id.replace('filter-', '').replace('-btn', '');
+            activeFilter = newFilter === 'show-all' ? 'all' : newFilter;
+            currentPage = 1;
+            updateDisplay();
+        }));
+        
+        ui.cards.today.addEventListener('click', () => { activeFilter = 'today'; currentPage = 1; updateDisplay(); });
+        ui.cards.sevenDays.addEventListener('click', () => { activeFilter = '7days'; currentPage = 1; updateDisplay(); });
+        
+        ui.paginationControls.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button || button.disabled) return;
+            const pageAction = button.dataset.page;
+            if (pageAction === 'prev') currentPage--;
+            if (pageAction === 'next') currentPage++;
+            renderTable(getCurrentPageData());
+            renderPagination();
+        });
+
+        ui.sheetSelector.addEventListener('change', (e) => {
+            fetchAndProcessData(e.target.value);
+        });
+
+        // --- INISIALISASI APLIKASI ---
+        initializeApp();
+    });
+    </script>
+
+</body>
+</html>
