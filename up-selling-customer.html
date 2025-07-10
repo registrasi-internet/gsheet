@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Up-Selling Customer 1.2</title>
+    <title> Up-Selling Customer 1.4</title>
     <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Memuat Font Inter dari Google Fonts -->
@@ -18,6 +18,69 @@
         select:disabled {
             cursor: wait;
             opacity: 0.7;
+        }
+
+        /* --- CSS UNTUK TABEL RESPONSIVE --- */
+        /* Terapkan gaya ini hanya pada layar kecil (di bawah 768px) */
+        @media screen and (max-width: 767px) {
+            /* Sembunyikan header tabel standar */
+            table thead {
+                display: none;
+            }
+            /* Ubah elemen tabel menjadi block agar bisa ditata ulang */
+            table, table tbody, table tr, table td {
+                display: block;
+                width: 100%;
+            }
+            /* Setiap baris (tr) akan menjadi seperti kartu */
+            table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb; /* border-gray-200 */
+                border-radius: 0.5rem; /* rounded-lg */
+                padding: 0.25rem;
+                box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            }
+            /* Setiap sel (td) akan menjadi baris di dalam kartu */
+            table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem;
+                text-align: right;
+                border-bottom: 1px solid #f3f4f6; /* border-gray-100 */
+            }
+            /* Hapus garis bawah untuk sel terakhir di kartu */
+            table tr td:last-child {
+                border-bottom: none;
+            }
+            /* Buat label dari atribut data-label */
+            table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                text-align: left;
+                padding-right: 1rem;
+                color: #374151; /* text-gray-700 */
+            }
+            /* Pastikan elemen input dan tombol di kolom Progress & Aksi memiliki ruang yang cukup */
+            table td[data-label="Progress"] > *,
+            table td[data-label="Aksi"] > * {
+                flex-basis: 60%;
+            }
+        }
+        
+        /* Tambahkan gaya untuk mode gelap pada layar kecil */
+        @media (prefers-color-scheme: dark) {
+            @media screen and (max-width: 767px) {
+                table tr {
+                    border-color: #374151; /* dark:border-gray-700 */
+                }
+                table td {
+                    border-color: #1f2937; /* dark:border-gray-800 */
+                }
+                table td::before {
+                    color: #d1d5db; /* dark:text-gray-300 */
+                }
+            }
         }
     </style>
 </head>
@@ -265,9 +328,9 @@
             table.className = 'w-full text-sm text-left text-gray-600 dark:text-gray-300';
             
             const thead = table.createTHead();
-            thead.className = 'text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-100 dark:bg-gray-900/50 whitespace-nowrap';
+            thead.className = 'text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-100 dark:bg-gray-900/50';
             const headerRow = thead.insertRow();
-            columnsToDisplay.forEach(col => headerRow.insertAdjacentHTML('beforeend', `<th scope="col" class="px-6 py-4 font-semibold">${col.header}</th>`));
+            columnsToDisplay.forEach(col => headerRow.insertAdjacentHTML('beforeend', `<th scope="col" class="px-6 py-4 font-semibold whitespace-nowrap">${col.header}</th>`));
             headerRow.insertAdjacentHTML('beforeend', '<th scope="col" class="px-6 py-4 font-semibold text-center">Aksi</th>');
 
             const tbody = table.createTBody();
@@ -278,11 +341,12 @@
                     const tr = tbody.insertRow();
                     const originalRowIndex = item.rowIndex;
                     const rowData = item.data;
-                    tr.className = 'bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200';
+                    tr.className = 'bg-white dark:bg-gray-800 md:border-b md:border-gray-200 md:dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200';
                     
                     columnsToDisplay.forEach((col) => {
                         const cell = tr.insertCell();
-                        cell.className = 'px-6 py-4 whitespace-nowrap';
+                        cell.className = 'px-6 py-4 md:whitespace-nowrap';
+                        cell.dataset.label = col.header; // Tambahkan atribut data-label
                         
                         if (col.key === 'progress') {
                             const progressValue = columnIndexes.progress !== -1 ? (rowData[columnIndexes.progress] || '').trim().toUpperCase() : '';
@@ -305,24 +369,18 @@
                         }
                     });
                     
-                    // --- PEMBARUAN DI SINI ---
                     const phoneNumber = rowData[columnIndexes.bp_phone];
                     const fullName = rowData[columnIndexes.bp_fullname] || '';
                     const expiryDate = rowData[columnIndexes.expireddate] || '';
                     const actionCell = tr.insertCell();
-                    actionCell.className = 'px-6 py-4 text-center';
+                    actionCell.dataset.label = 'Aksi'; // Tambahkan atribut data-label
+                    actionCell.className = 'px-6 py-4 md:text-center';
 
                     if (phoneNumber) {
-                        // Template pesan dari Anda
                         const messageTemplate = `*Halo ${fullName} pelanggan setia Biznet* \n\nKami ingin mengingatkan bahwa jatuh tempo pembayaran tagihan Biznet Anda adalah pada *${expiryDate}*.\n\nSaat ini tersedia promo spesial perpanjangan layanan:\nBayar 3 bulan > gratis 1 bulan\nBayar 6 bulan > gratis 2 bulan\nBayar 9 bulan > gratis 3 bulan\nBayar 12 bulan > gratis 5 bulan\nDengan perpanjangan lebih lama, Anda bisa hemat lebih banyak dan tidak perlu repot bayar bulanan.\n\nPaket 12+5 adalah yang paling hemat—bayar 12 bulan, gratis hampir setengah tahun!\nJika sudah melakukan pembayaran, silakan abaikan pesan ini.\n\nTapi kalau tertarik dengan promo ini, cukup balas pesan ini untuk info lebih lanjut. \nTerima kasih atas kepercayaannya menggunakan Biznet!`;
-                        
-                        // Encode pesan untuk URL
                         const encodedMessage = encodeURIComponent(messageTemplate);
-
-                        // Buat link WhatsApp dengan pesan otomatis
-                        actionCell.innerHTML = `<a href="https://wa.me/${formatPhoneNumber(phoneNumber)}?text=${encodedMessage}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-xs shadow-sm transition-all duration-200 transform hover:scale-110"><i class="fab fa-whatsapp mr-2"></i>Follow Up</a>`;
+                        actionCell.innerHTML = `<a href="https://wa.me/${formatPhoneNumber(phoneNumber)}?text=${encodedMessage}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-xs shadow-sm transition-all duration-200 transform hover:scale-110 w-full"><i class="fab fa-whatsapp mr-2"></i>Follow Up</a>`;
                     }
-                    // --- AKHIR PEMBARUAN ---
                 });
             }
             ui.tableContainer.appendChild(table);
