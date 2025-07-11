@@ -734,24 +734,38 @@ Catatan: ${record.Catatan || '-'}
                         modal.querySelector('.modal-confirm-delete-btn').onclick = () => handleDelete(record.rowId);
                         break;
                     case 'ktp':
-    modal = elements.ktpModal;
-    const directKtpUrl = getDirectGdriveLink(record['URL Foto KTP']);
-    const errorHtml = `<span class="text-gray-500">Gambar Tidak Tersedia</span>`;
-    modal.innerHTML = `
-        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-lg w-full relative">
-            <button class="modal-cancel-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-            <h3 class="text-xl font-bold mb-4">KTP: ${record.Nama}</h3>
-            <div class="w-full h-64 bg-gray-200 dark:bg-slate-700 flex items-center justify-center rounded">
-                <img src="${directKtpUrl}" class="max-w-full max-h-full object-contain" onerror="this.outerHTML = '${errorHtml}'">
-            </div>
-        </div>`;
-    modal.classList.remove('hidden');
-    modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
-    break;
+                        modal = elements.ktpModal;
+                        const directKtpUrl = getDirectGdriveLink(record['URL Foto KTP']);
+                        const imageContainerId = `ktp-image-container-${record.rowId}`;
+                        const errorContainerId = `ktp-error-container-${record.rowId}`;
+
+                        modal.innerHTML = `
+                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 max-w-lg w-full relative flex flex-col">
+                                <button class="modal-cancel-btn absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 z-10">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                                <div class="flex flex-col items-center text-center">
+                                    <h3 class="text-xl font-bold mb-4 w-full break-words">KTP: ${record.Nama}</h3>
+                                    
+                                    <div class="w-full h-64 bg-gray-200 dark:bg-slate-700 flex items-center justify-center rounded mt-2">
+                                        
+                                        <div id="${imageContainerId}">
+                                            <img src="${directKtpUrl}" class="max-w-full max-h-full object-contain" 
+                                                 onerror="document.getElementById('${imageContainerId}').classList.add('hidden'); document.getElementById('${errorContainerId}').classList.remove('hidden');">
+                                        </div>
+                                        
+                                        <div id="${errorContainerId}" class="hidden">
+                                            <span class="text-gray-500 dark:text-slate-400">Gambar Tidak Tersedia</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+
+                        modal.classList.remove('hidden');
+                        modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
+                        break;
 
                 }
             }
