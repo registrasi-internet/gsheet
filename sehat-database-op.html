@@ -8,11 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tambahkan library Cropper.js -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
-    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
+
+    <!-- Font Awesome untuk ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -27,9 +28,11 @@
         .toast.show { opacity: 1; transform: translateX(0); }
         .toast-success { background-color: #dcfce7; color: #166534; border-left: 4px solid #22c55e; }
         .toast-error { background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
-        .toast-info { background-color: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+        .toast-info { background-color: #e0f2fe; color: #075985; border-left: 4px solid #0ea5e9; }
         .sortable { cursor: pointer; user-select: none; }
         .sortable:hover { background-color: #1075b0; }
+        
+        /* Menyembunyikan indikator panah sort */
         .sort-indicator { display: none; }
 
         @media (max-width: 1024px) {
@@ -85,7 +88,7 @@
                         <label for="edit-alamat" class="block text-sm font-medium text-gray-600 dark:text-slate-300">Alamat</label>
                         <textarea id="edit-alamat" rows="2" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-[#1390d0] focus:border-[#1390d0] text-gray-900 dark:text-slate-100"></textarea>
                     </div>
-                    <div>
+                     <div>
                         <label for="edit-paket_layanan" class="block text-sm font-medium text-gray-600 dark:text-slate-300">Paket Layanan</label>
                         <input type="text" id="edit-paket_layanan" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-[#1390d0] focus:border-[#1390d0] text-gray-900 dark:text-slate-100">
                     </div>
@@ -131,7 +134,7 @@
             </div>
 
             <div id="filter-controls" class="hidden bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg mt-4 mb-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label for="filter-service" class="block text-sm font-medium text-gray-600 dark:text-slate-300">Paket Layanan</label>
                         <select id="filter-service" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-slate-600 focus:outline-none focus:ring-[#1390d0] focus:border-[#1390d0] sm:text-sm rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100"></select>
@@ -227,8 +230,8 @@
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFZCQdjvL9qRQJvr3xjobdPiClKZ9ui-TJJcbAf2K1LYilhN4zbexjQ7NX5FM2WNZ8/exec"; 
             const ROWS_PER_PAGE = 10;
             const DB_NAME = 'SehatDatabase';
-            const STORE_NAME = 'registrations';
-            const CACHE_KEY = 'allData';
+            const STORE_NAME = 'pelanggan';
+            const DB_VERSION = 1;
 
             // --- ELEMEN DOM ---
             const elements = {
@@ -255,41 +258,53 @@
             };
 
             // --- STATE APLIKASI ---
-            let allData = [];
-            let displayedData = [];
+            let allData = []; // Menyimpan semua data dari server/cache
+            let displayedData = []; // Data yang sudah difilter dan diurutkan
             let currentEditingRecord = null;
             let state = {
                 currentPage: 1,
                 sort: { column: 'Timestamp', order: 'desc' }
             };
             let debounceTimeout;
+            let db; // Variabel untuk instance database
 
-            // --- PERUBAHAN: FUNGSI MANAJEMEN INDEXEDDB ---
-            const dbCache = {
-                async get() {
-                    try {
-                        return await idbKeyval.get(CACHE_KEY);
-                    } catch (error) {
-                        console.error("Gagal membaca dari IndexedDB:", error);
-                        return undefined;
-                    }
-                },
-                async set(data) {
-                    try {
-                        await idbKeyval.set(CACHE_KEY, data);
-                    } catch (error) {
-                        console.error("Gagal menyimpan ke IndexedDB:", error);
-                    }
-                },
-                async clear() {
-                    try {
-                        await idbKeyval.clear();
-                    } catch (error) {
-                        console.error("Gagal membersihkan IndexedDB:", error);
-                    }
-                }
-            };
-            
+            // --- HELPER INDEXEDDB ---
+            function openDb() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onerror = (event) => reject("Gagal membuka IndexedDB.");
+                    request.onsuccess = (event) => {
+                        db = event.target.result;
+                        resolve(db);
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const store = event.target.result.createObjectStore(STORE_NAME, { keyPath: 'key' });
+                    };
+                });
+            }
+
+            function dbGet(key) {
+                return new Promise((resolve, reject) => {
+                    if (!db) { return resolve(null); }
+                    const transaction = db.transaction(STORE_NAME, 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result ? request.result.value : null);
+                    request.onerror = () => reject("Gagal membaca dari DB.");
+                });
+            }
+
+            function dbSet(key, value) {
+                return new Promise((resolve, reject) => {
+                     if (!db) { return resolve(); }
+                    const transaction = db.transaction(STORE_NAME, 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.put({ key, value });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject("Gagal menyimpan ke DB.");
+                });
+            }
+
             // --- FUNGSI REQUEST KE GOOGLE APPS SCRIPT ---
             async function fetchFromScript(action, payload = {}) {
                 try {
@@ -310,49 +325,63 @@
                 }
             }
 
-            // --- PERUBAHAN: ALUR PENGAMBILAN DATA BARU ---
-            async function loadDataFromCache() {
-                toggleLoading(true, elements.refreshBtn);
-                const cachedData = await dbCache.get();
-                if (cachedData && cachedData.length > 0) {
-                    allData = cachedData;
-                    updateDisplay();
-                    showToast(`Menampilkan ${allData.length} data dari cache.`, 'info');
-                } else {
-                     elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-12"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-500 dark:text-slate-400">Memuat data untuk pertama kali...</p></td></tr>`;
+            // --- FUNGSI PENGAMBILAN & PEMROSESAN DATA ---
+            async function fetchAllDataFromServer() {
+                let loadedData = [];
+                let currentPage = 1;
+                const BATCH_SIZE = 100; // Ambil 100 baris sekaligus
+                const MAX_PAGES = 100; // Pengaman
+
+                while (currentPage <= MAX_PAGES) {
+                    const payload = {
+                        page: currentPage,
+                        rowsPerPage: BATCH_SIZE,
+                        sort: { column: 'Timestamp', order: 'desc' },
+                        filters: { search: '', service: '', startDate: '', endDate: '' }
+                    };
+                    // FIX: Changed 'readAll' to 'read' to match the expected server action
+                    const result = await fetchFromScript('read', payload);
+                    
+                    if (result.data && result.data.length > 0) {
+                        loadedData.push(...result.data);
+                        if (result.data.length < BATCH_SIZE) {
+                            break; // Halaman terakhir
+                        }
+                        currentPage++;
+                    } else {
+                        break; // Tidak ada data lagi
+                    }
                 }
-                toggleLoading(false, elements.refreshBtn);
+                return loadedData;
             }
 
-            async function fetchAllDataFromServer(isManualRefresh = false) {
+            async function syncData(isInitialLoad = false) {
                 toggleLoading(true, elements.refreshBtn);
-                try {
-                    // Gunakan 'readAll' untuk mengambil semua data sekaligus dari Apps Script
-                    const result = await fetchFromScript('readAll', {}); 
-                    
-                    if (result.status === 'success' && result.data) {
-                        const newData = result.data;
-                        const oldDataString = JSON.stringify(allData);
-                        const newDataString = JSON.stringify(newData);
+                if (isInitialLoad) {
+                    elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-12"><div class="spinner mx-auto"></div><p class="mt-2 text-gray-500 dark:text-slate-400">Memuat data dari server...</p></td></tr>`;
+                }
 
-                        // Hanya perbarui jika ada data baru atau ada perubahan
-                        if (oldDataString !== newDataString) {
-                            allData = newData;
-                            await dbCache.set(allData); // Simpan data baru ke cache
-                            populateServiceFilter(allData);
-                            updateDisplay();
-                            if (isManualRefresh) {
-                                showToast(`Sinkronisasi berhasil. ${allData.length} data terbaru dimuat.`, 'success');
-                            }
-                        } else if (isManualRefresh) {
-                            showToast('Data sudah yang terbaru.', 'info');
-                        }
-                    } else {
-                         throw new Error(result.message || "Gagal mengambil data dari server.");
+                try {
+                    const freshData = await fetchAllDataFromServer();
+                    
+                    // Bandingkan data baru dengan data lama sebelum render ulang
+                    const oldDataString = JSON.stringify(allData);
+                    const freshDataString = JSON.stringify(freshData);
+
+                    if (oldDataString !== freshDataString) {
+                        allData = freshData;
+                        await dbSet('allData', freshData);
+                        
+                        populateServiceFilter(allData);
+                        state.currentPage = 1;
+                        updateDisplay();
+                        showToast(`Data berhasil disinkronkan (${freshData.length} baris).`, 'success');
+                    } else if (!isInitialLoad) {
+                        showToast('Data sudah yang terbaru.', 'info');
                     }
                 } catch (error) {
-                    if (allData.length === 0) { // Jika cache juga kosong
-                        elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-12"><p class="text-red-500">Gagal memuat data. Periksa koneksi internet Anda.</p></td></tr>`;
+                    if (allData.length === 0) { // Hanya tampilkan error jika tidak ada cache
+                         elements.tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-12"><p class="text-red-500">Gagal memuat data. Periksa koneksi Anda dan coba lagi.</p></td></tr>`;
                     }
                 } finally {
                     toggleLoading(false, elements.refreshBtn);
@@ -432,16 +461,12 @@
                 displayedData = filteredData;
 
                 // 3. Render
-                if (allData.length > 0) {
-                   populateServiceFilter(allData);
-                }
                 renderTableForCurrentPage();
                 renderPagination();
             }
 
             function populateServiceFilter(data) {
                 const services = [...new Set(data.map(item => item['Paket Layanan']).filter(Boolean))];
-                const currentSelection = elements.filterService.value;
                 elements.filterService.innerHTML = '<option value="">Semua Paket</option>';
                 services.sort().forEach(service => {
                     const option = document.createElement('option');
@@ -449,7 +474,6 @@
                     option.textContent = service;
                     elements.filterService.appendChild(option);
                 });
-                elements.filterService.value = currentSelection; // Pertahankan filter jika memungkinkan
             }
 
             // --- FUNGSI RENDER UI ---
@@ -538,7 +562,7 @@
             
             function showToast(message, type = 'success') {
                 const toast = document.createElement('div');
-                toast.className = `toast toast-${type}`;
+                toast.className = `toast ${type === 'success' ? 'toast-success' : (type === 'error' ? 'toast-error' : 'toast-info')}`;
                 toast.textContent = message;
                 elements.toastContainer.appendChild(toast);
                 setTimeout(() => toast.classList.add('show'), 10);
@@ -551,8 +575,16 @@
             function formatDate(dateString) {
                 if (!dateString) return '-';
                 try {
+                    // Coba parsing format DD-MM-YYYY secara manual
+                    const parts = dateString.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+                    if (parts) {
+                        const date = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                         if (isNaN(date.getTime())) return dateString; // Jika gagal, kembalikan string asli
+                        return `${parts[1]}-${parts[2]}-${parts[3]}`;
+                    }
+                    // Fallback ke parsing standar
                     const date = new Date(dateString);
-                    if (isNaN(date.getTime())) return dateString; // Jika format sudah DD-MM-YYYY, kembalikan saja
+                    if (isNaN(date.getTime())) return dateString;
                     const day = String(date.getDate()).padStart(2, '0');
                     const month = String(date.getMonth() + 1).padStart(2, '0');
                     const year = date.getFullYear();
@@ -580,8 +612,7 @@
                 const regex = /\/d\/(.*?)(?:\/view|\?usp=sharing|\?usp=drivesdk|$)/;
                 const match = url.match(regex);
                 if (match && match[1]) {
-                    // Perbaikan: URL gambar Google Drive tidak lagi sederhana, coba pendekatan lain
-                    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                    return `https://lh3.googleusercontent.com/d/${match[1]}`;
                 }
                 return url; 
             }
@@ -599,11 +630,20 @@ Paket Layanan: ${record['Paket Layanan'] || '-'}
 Catatan: ${record.Catatan || '-'}
                 `.trim().replace(/^\s+/gm, '');
 
-                navigator.clipboard.writeText(textToCopy).then(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
                     showToast('Data disalin.', 'success');
-                }).catch(err => {
+                } catch (err) {
                     showToast('Gagal menyalin data.', 'error');
-                });
+                }
+                document.body.removeChild(textArea);
             }
 
             async function handleUpdate(e) {
@@ -628,19 +668,18 @@ Catatan: ${record.Catatan || '-'}
                 
                 try {
                     await fetchFromScript('update', { rowId: parseInt(rowId), data: payloadData });
+                    showToast('Data berhasil diperbarui.', 'success');
+                    elements.editModal.classList.add('hidden');
                     
-                    // PERUBAHAN: Update data lokal dan cache
+                    // Update data lokal dan cache
                     const index = allData.findIndex(item => item.rowId == rowId);
                     if (index !== -1) {
                         allData[index] = { ...allData[index], ...payloadData };
-                        await dbCache.set(allData); // Simpan perubahan ke cache
                     }
-                    updateDisplay();
-                    
-                    showToast('Data berhasil diperbarui.', 'success');
-                    elements.editModal.classList.add('hidden');
+                    await dbSet('allData', allData); // Update cache
+                    updateDisplay(); // Render ulang tampilan
                 } catch (error) {
-                    // Error sudah ditangani oleh fetchFromScript
+                    // Error sudah ditangani
                 } finally {
                     toggleLoading(false, elements.submitEditBtn);
                     currentEditingRecord = null;
@@ -650,15 +689,14 @@ Catatan: ${record.Catatan || '-'}
             async function handleDelete(rowId) {
                 try {
                     await fetchFromScript('delete', { rowId });
-                    
-                    // PERUBAHAN: Hapus data dari array lokal dan cache
-                    allData = allData.filter(item => item.rowId != rowId);
-                    await dbCache.set(allData); // Update cache
-                    updateDisplay();
-
                     showToast('Data berhasil dihapus.', 'success');
                     elements.deleteModal.innerHTML = '';
                     elements.deleteModal.classList.add('hidden');
+                    
+                    // Hapus data dari array lokal, cache, dan render ulang
+                    allData = allData.filter(item => item.rowId != rowId);
+                    await dbSet('allData', allData); // Update cache
+                    updateDisplay();
                 } catch (error) {
                     // Error sudah ditangani
                 }
@@ -666,7 +704,7 @@ Catatan: ${record.Catatan || '-'}
 
             // --- SETUP EVENT LISTENERS ---
             function setupEventListeners() {
-                elements.refreshBtn.addEventListener('click', () => fetchAllDataFromServer(true));
+                elements.refreshBtn.addEventListener('click', () => syncData(false));
 
                 elements.searchInput.addEventListener('input', () => {
                     clearTimeout(debounceTimeout);
@@ -803,18 +841,38 @@ Catatan: ${record.Catatan || '-'}
                         modal.classList.remove('hidden');
                         modal.querySelector('.modal-cancel-btn').onclick = () => modal.classList.add('hidden');
                         break;
+
                 }
             }
 
-            // --- INISIALISASI ---
-            async function initialize() {
+            // --- INISIALISASI APLIKASI ---
+            async function initializeApp() {
+                try {
+                    await openDb();
+                    const cachedData = await dbGet('allData');
+
+                    if (cachedData && cachedData.length > 0) {
+                        showToast('Memuat data dari cache...', 'info');
+                        allData = cachedData;
+                        populateServiceFilter(allData);
+                        updateDisplay();
+                        // Sinkronisasi di latar belakang
+                        syncData(false);
+                    } else {
+                        // Tidak ada cache, muat dari server dengan loader
+                        syncData(true);
+                    }
+                } catch (error) {
+                    console.error("Gagal menginisialisasi DB, menggunakan mode fallback:", error);
+                    showToast("Gagal memuat cache, mengambil data langsung.", "error");
+                    syncData(true); // Fallback jika DB gagal
+                }
+
                 setupEventListeners();
                 updateSortIndicators();
-                await loadDataFromCache(); // Muat dari cache dulu
-                await fetchAllDataFromServer(); // Lalu sinkronkan dengan server
             }
 
-            initialize();
+            initializeApp();
         });
     </script>
 </body>
