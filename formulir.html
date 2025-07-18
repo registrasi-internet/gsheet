@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Mudah! v3.7 (Google Sheets)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS dipindahkan ke file terpisah -->
+    <link rel="stylesheet" href="formulir.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen p-4">
+
+    <div id="config-warning-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-lg w-full text-center border-l-4 border-red-500">
+            <h2 class="text-2xl font-bold text-red-600 dark:text-red-400">Konfigurasi Diperlukan</h2>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">
+                Aplikasi ini belum terhubung ke Google Sheet. Harap masukkan <strong>URL Web App</strong> dari Google Apps Script Anda di dalam kode HTML untuk melanjutkan.
+            </p>
+            <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">
+                (Lihat variabel <code>SCRIPT_URL</code>).
+            </p>
+        </div>
+    </div>
+
+    <div class="w-full max-w-lg">
+        <div id="app-content" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 space-y-6">
+            <header class="text-center">
+                <h1 class="text-3xl font-bold text-[#1390d0] dark:text-sky-400">Registrasi Mudah!</h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-2">Isi Formulir untuk kebutuhan Data Registrasi Internet</p>
+            </header>
+
+            <form id="data-form" class="space-y-6">
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Foto KTP</label>
+                    <div id="preview-area" class="w-full p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hidden"><img id="image-preview" alt="Pratinjau KTP"></div>
+                    <label for="ktp-upload" id="upload-box" class="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-24 h-auto text-gray-400 mb-3" viewBox="0 0 86 54" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="84" height="52" rx="4" stroke="currentColor" stroke-width="2"/><rect x="58" y="7" width="20" height="25" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 12H40" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 18H40" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 24H35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 30H30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="font-semibold text-gray-500 dark:text-gray-300">Upload Foto KTP</span>
+                        <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">Pastikan foto terlihat jelas dan tidak buram</span>
+                    </label>
+                    <input type="file" id="ktp-upload" accept="image/*">
+                    <p id="image-status" class="text-sm mt-2 text-center font-medium h-5"></p>
+                </div>
+
+                <div id="ocr-results" class="space-y-4 hidden">
+                    <div>
+                        <label for="nama" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Lengkap</label>
+                        <input type="text" id="nama" name="nama" readonly class="mt-1 block w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none text-gray-500 dark:text-gray-400 transition-colors duration-300" placeholder="Akan terisi otomatis...">
+                    </div>
+                    <div>
+                        <label for="nik" class="block text-sm font-medium text-gray-700 dark:text-gray-300">NIK</label>
+                        <input type="text" id="nik" name="nik" readonly class="mt-1 block w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none text-gray-500 dark:text-gray-400 transition-colors duration-300" placeholder="Akan terisi otomatis...">
+                    </div>
+                    <div>
+                        <label for="tgl_lahir" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Lahir</label>
+                        <input type="text" id="tgl_lahir" name="tgl_lahir" readonly class="mt-1 block w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none text-gray-500 dark:text-gray-400 transition-colors duration-300" placeholder="Akan terisi otomatis...">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="whatsapp" class="block text-sm font-medium text-gray-700 dark:text-gray-300">No. WhatsApp</label>
+                    <input type="tel" id="whatsapp" name="whatsapp" required class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1390d0] text-gray-900 dark:text-white" placeholder="Contoh: 081234567890">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                    <input type="email" id="email" name="email" required class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1390d0] text-gray-900 dark:text-white" placeholder="nama@email.com">
+                </div>
+                <div>
+                    <label for="alamat" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Alamat Lengkap Pemasangan</label>
+                    <textarea id="alamat" name="alamat" rows="3" required class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1390d0] text-gray-900 dark:text-white" placeholder="Masukkan alamat lengkap beserta No. Rumah Anda"></textarea>
+                </div>
+                <div>
+                    <label for="paket_layanan" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Paket Layanan</label>
+                    <select id="paket_layanan" name="paket_layanan" required class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1390d0] text-gray-900 dark:text-white">
+                        <option>Internet 50 Mbps</option>
+                        <option>Internet 100 Mbps</option>
+                        <option>Internet 150 Mbps</option>
+                        <option>Internet Gamers 200 Mbps</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="catatan" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Catatan (Opsional)</label>
+                    <textarea id="catatan" name="catatan" rows="2" class="mt-1 block w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1390d0] text-gray-900 dark:text-white" placeholder="Informasi tambahan."></textarea>
+                </div>
+                <div>
+                    <button type="submit" id="submit-btn" disabled class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-[#1390d0] hover:bg-[#1075b0] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                        <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                        Kirim Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="crop-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-40 p-4"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-xl w-full"><h3 class="text-xl font-bold text-center text-gray-800 dark:text-white mb-4">Sesuaikan Frame KTP</h3><div class="img-container w-full h-64 md:h-80 mb-4"><img id="image-to-crop" src=""></div><div class="flex justify-between space-x-4"><button id="cancel-crop-btn" class="w-full bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg hover:bg-gray-400 transition-colors">Batal</button><button id="crop-btn" class="w-full bg-[#1390d0] text-white py-2 rounded-lg hover:bg-[#1075b0] transition-colors">Potong & Gunakan</button></div></div></div>
+    
+    <div id="notification-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full">
+            <div id="notification-content">
+                </div>
+            <div class="mt-5 sm:mt-6">
+                <button id="close-modal-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#1390d0] text-base font-medium text-white hover:bg-[#1075b0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1390d0] sm:text-sm">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript dipindahkan ke file terpisah -->
+    <script src="formulir.js" type="module"></script>
+</body>
+</html>
