@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HPanel v3 - Dasbor Manajemen</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- jsPDF & html2canvas for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; font-size: 14px; }
+        @keyframes fade-in-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-down { animation: fade-in-down 0.3s ease-out forwards; }
+        .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #invoice-printable-area, #invoice-printable-area * {
+                visibility: visible;
+            }
+            #invoice-printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                padding: 20px;
+                margin: 0;
+                border: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+    
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- GANTI DENGAN URL WEB APP ANDA DARI GOOGLE APPS SCRIPT ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzeDHDOGD3Gybt6mux8cPlOYnBfHl7pSYas5WEoJdkpVPjaNr_i7mKuDdaZgSsgM2mr/exec';
+
+        // --- ICONS ---
+        const icons = {
+            BarChart2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+            Users: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+            FileText: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>,
+            X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+            Search: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+            ChevronLeft: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="15 18 9 12 15 6" /></svg>,
+            Edit: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
+            PlusCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>,
+            Layers: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
+            CheckCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
+            Menu: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
+            AlertTriangle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+            Bell: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>,
+            ShoppingCart: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>,
+            Bot: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 8V4H8" /><rect x="4" y="12" width="16" height="8" rx="2" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="M12 12v.01" /></svg>,
+            ChevronRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="9 18 15 12 9 6" /></svg>,
+            ChevronsLeft: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>,
+            ChevronsRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>,
+            Camera: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>,
+            Home: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
+            Download: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>,
+            Spinner: ({ className, ...props }) => {
+                const finalClassName = ['animate-spin', className].filter(Boolean).join(' ');
+                return (
+                    <svg className={finalClassName} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" {...props}>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                );
+            },
+            Circle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /></svg>,
+            Clock: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></svg>,
+            Info: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-11h-2v6h2v-6zm0 8h-2v2h2v-2z" /></svg>,
+        };
+
+        const { useState, useMemo, useEffect, useCallback, useRef } = React;
+        const { BarChart2, Users, FileText, X, Search, ChevronLeft, Edit, PlusCircle, Layers, CheckCircle, Menu, AlertTriangle, Bell, ShoppingCart, Bot, ChevronRight, ChevronsLeft, ChevronsRight, Camera, Home, Spinner, Download, Circle, Clock, Info } = icons;
+
+        // --- HELPER FUNCTIONS ---
+        const formatRelativeTime = (timestamp) => {
+            if (!timestamp) return '';
+            const now = new Date();
+            const past = new Date(timestamp);
+            const seconds = Math.floor((now - past) / 1000);
+
+            if (seconds < 10) return 'baru saja';
+            if (seconds < 60) return `${seconds} detik lalu`;
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} menit lalu`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} jam lalu`;
+
+            const days = Math.floor(hours / 24);
+            if (days === 1) return 'kemarin';
+            if (days < 7) return `${days} hari lalu`;
+
+            return past.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        };
+
+        // --- UI COMPONENTS ---
+        const Avatar = ({ name, imageUrl, size = 'md', className = '' }) => {
+            const getInitials = (name) => {
+                if (!name) return '?';
+                const names = name.trim().split(' ');
+                if (names.length > 1) return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+                return name.substring(0, 2).toUpperCase();
+            };
+            const getBackgroundColor = (name) => {
+                if (!name) return 'bg-gray-500';
+                let hash = 0;
+                for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                const colors = ['bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'];
+                return colors[Math.abs(hash) % colors.length];
+            };
+            const sizeClasses = { 'sm': 'w-8 h-8 text-xs', 'md': 'w-10 h-10 text-sm', 'lg': 'w-16 h-16 text-xl' };
+            if (imageUrl) return <img src={imageUrl} alt={name} className={`rounded-full object-cover flex-shrink-0 ${sizeClasses[size]} ${className}`} />;
+            return <div className={`rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${getBackgroundColor(name)} ${sizeClasses[size]} ${className}`}>{getInitials(name)}</div>;
+        };
+        const StatusBadge = ({ status, size = 'sm' }) => {
+            const baseClasses = "font-medium rounded-full inline-flex items-center gap-1";
+            const sizeClasses = { sm: "px-2.5 py-0.5 text-xs", lg: "px-4 py-1 text-sm" };
+            let colorClasses = "";
+            let icon = null;
+            switch (status) {
+                case 'Lunas':
+                    colorClasses = "bg-green-100 text-green-700";
+                    icon = <CheckCircle className="w-3 h-3 mr-1 text-green-500" />;
+                    break;
+                case 'Aktif':
+                    colorClasses = "bg-blue-100 text-blue-700";
+                    icon = (
+                        <svg className="w-3 h-3 mr-1 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    );
+                    break;
+                case 'Tersedia':
+                    colorClasses = "bg-blue-100 text-blue-700";
+                    icon = <Circle className="w-3 h-3 mr-1 text-blue-500" />;
+                    break;
+                case 'Akan Berakhir':
+                case 'Pending':
+                    colorClasses = "bg-yellow-100 text-yellow-700";
+                    icon = <Clock className="w-3 h-3 mr-1 text-yellow-500" />;
+                    break;
+                case 'Jatuh Tempo':
+                case 'Suspended':
+                case 'Diarsipkan':
+                case 'Belum Dibayar':
+                    colorClasses = "bg-red-100 text-red-700";
+                    icon = <AlertTriangle className="w-3 h-3 mr-1 text-red-500" />;
+                    break;
+                default:
+                    colorClasses = "bg-gray-100 text-gray-700";
+                    icon = <Circle className="w-3 h-3 mr-1 text-gray-400" />;
+            }
+            return <span className={`${baseClasses} ${sizeClasses[size]} ${colorClasses}`}>{icon}{status}</span>;
+        };
+        const Toast = ({ message, type, onDismiss }) => {
+            const baseClasses = "fixed top-5 right-5 flex items-center p-4 rounded-lg shadow-lg text-white z-[100] animate-fade-in-down min-w-[220px]";
+            const typeClasses = { success: 'bg-green-500', info: 'bg-blue-500', error: 'bg-red-500' };
+            const iconMap = {
+                success: <CheckCircle className="w-5 h-5 mr-2 text-white" />,
+                info: <Info className="w-5 h-5 mr-2 text-white" />,
+                error: <AlertTriangle className="w-5 h-5 mr-2 text-white" />,
+            };
+            useEffect(() => { const timer = setTimeout(onDismiss, 3000); return () => clearTimeout(timer); }, [onDismiss]);
+            return (
+                <div className={`${baseClasses} ${typeClasses[type]}`}>{iconMap[type]}<span>{message}</span><button onClick={onDismiss} className="ml-4"><X size={18} /></button></div>
+            );
+        };
+        const SearchBar = ({ searchTerm, setSearchTerm, placeholder }) => (
+            <div className='relative flex-grow'>
+                <input type='text' placeholder={placeholder} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className='border border-gray-300 rounded-md pl-10 pr-4 py-2 w-full focus:ring-blue-500 focus:border-blue-500 text-sm' />
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            </div>
+        );
+        const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+            if (totalPages <= 1) return null;
+            return (
+                <div className="flex justify-between items-center mt-4">
+                    <button onClick={() => onPageChange(1)} disabled={currentPage === 1} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronsLeft size={20} /></button>
+                    <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronLeft size={20} /></button>
+                    <span className="text-sm text-gray-700">Halaman {currentPage} dari {totalPages}</span>
+                    <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronRight size={20} /></button>
+                    <button onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronsRight size={20} /></button>
+                </div>
+            );
+        };
+        const BarChart = ({ data, dataKey, labelKey }) => {
+            const [tooltip, setTooltip] = useState(null);
+            if (!data || data.length === 0) return <div className="h-64 flex items-center justify-center text-gray-500">Tidak ada data.</div>;
+            const maxValue = Math.max(...data.map(d => d[dataKey]));
+            const yAxisLabels = Array.from({ length: 5 }, (_, i) => {
+                const value = (maxValue / 4) * i;
+                return value >= 1000000 ? `${(value / 1000000).toFixed(1)}Jt` : `${Math.round(value / 1000)}K`;
+            }).reverse();
+            return (
+                <div className="h-64 w-full relative pt-4">
+                    <div className="absolute top-4 left-0 h-[calc(100%-2rem)] w-full flex flex-col justify-between">
+                        {yAxisLabels.map((label, i) => (<div key={i} className="flex items-center w-full"><span className="text-xs text-gray-400 pr-2 w-12 text-right">{label}</span><div className="flex-1 border-t border-dashed border-gray-200"></div></div>))}
+                    </div>
+                    <div className="absolute top-4 left-12 h-[calc(100%-2rem)] w-[calc(100%-3rem)] flex justify-around items-end gap-2 px-2">
+                        {data.map((item, index) => (<div key={index} className="flex flex-col items-center flex-1 h-full justify-end group" onMouseEnter={() => setTooltip({ ...item, index })} onMouseLeave={() => setTooltip(null)}><div className="w-full bg-blue-500 group-hover:bg-blue-600 rounded-t-md" style={{ height: `${maxValue > 0 ? (item[dataKey] / maxValue) * 100 : 0}%`, transition: 'height 0.3s ease-in-out' }}></div></div>))}
+                    </div>
+                    <div className="absolute bottom-0 left-12 h-8 w-[calc(100%-3rem)] flex justify-around items-end gap-2 px-2">
+                        {data.map((item, index) => (<div key={index} className="text-xs font-medium text-gray-600 mt-2 flex-1 text-center"><span className="hidden sm:inline">{item[labelKey]}</span><span className="sm:hidden">{item[labelKey].charAt(0)}</span></div>))}
+                    </div>
+                    {tooltip && (<div className="absolute bg-gray-800 text-white text-xs rounded-md p-2 shadow-lg z-10" style={{ left: `${(tooltip.index / data.length) * 100 + (1 / data.length / 2) * 100}%`, bottom: '100%', transform: 'translate(-50%, -10px)', transition: 'opacity 0.2s' }}>Rp {tooltip[dataKey].toLocaleString('id-ID')}</div>)}
+                </div>
+            );
+        };
+        const DonutChart = ({ data }) => {
+            if (!data || data.length === 0) return <div className="h-full flex items-center justify-center text-gray-500">Tidak ada data.</div>;
+            const total = data.reduce((acc, item) => acc + item.value, 0);
+            let cumulativePercent = 0;
+            const segments = data.map(item => { const percent = total > 0 ? (item.value / total) * 100 : 0; const startAngle = cumulativePercent; cumulativePercent += percent; return { ...item, percent, startAngle }; });
+            const radius = 15.9154943092;
+            return (
+                <div className="flex flex-col items-center justify-center h-full gap-6">
+                    <div className="relative w-36 h-36">
+                        <svg className="w-full h-full" viewBox="0 0 36 36">{segments.map((segment, index) => (<circle key={index} cx="18" cy="18" r={radius} fill="transparent" stroke={segment.color} strokeWidth="4" strokeDasharray={`${segment.percent} ${100 - segment.percent}`} strokeDashoffset={-segment.startAngle} transform="rotate(-90 18 18)" />))}</svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold text-gray-800">{total}</span><span className="text-sm text-gray-500">Layanan</span></div>
+                    </div>
+                    <div className="w-full"><ul className="space-y-2">{data.map(item => (<li key={item.name} className="flex justify-between items-center text-sm"><div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span><span className="text-gray-600">{item.name}</span></div><span className="font-semibold text-gray-800">{item.value}</span></li>))}</ul></div>
+                </div>
+            );
+        };
+        
+        const getServiceStatus = (service) => {
+            if (service.status === 'Suspended') return 'Suspended';
+            if (service.status === 'Pending') return 'Pending';
+            const now = new Date();
+            const expiry = new Date(service.expiryDate);
+            const daysLeft = (expiry - now) / (1000 * 60 * 60 * 24);
+            if (daysLeft < 0) return 'Jatuh Tempo';
+            if (daysLeft <= 30) return 'Akan Berakhir';
+            return 'Aktif';
+        };
+
+        const NotificationIcon = ({ iconName }) => {
+            switch (iconName) {
+                case 'CheckCircle': return <CheckCircle className="text-green-500"/>;
+                case 'AlertTriangle': return <AlertTriangle className="text-red-500"/>;
+                case 'Users': return <Users className="text-blue-500"/>;
+                case 'FileText': return <FileText className="text-yellow-500"/>;
+                case 'Layers': return <Layers className="text-green-500"/>;
+                default: return <Bell className="text-gray-500"/>;
+            }
+        };
+
+        const EmptyState = ({ icon, title, description, children }) => (
+            <div className="text-center py-12 px-6">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 text-gray-400">
+                    {icon}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-gray-800">{title}</h3>
+                <p className="mt-2 text-sm text-gray-500">{description}</p>
+                {children && <div className="mt-6">{children}</div>}
+            </div>
+        );
+
+        // --- MODALS ---
+        const Modal = ({ isOpen, onClose, children, title, size = 'md' }) => {
+            if (!isOpen) return null;
+            const sizeClasses = { 'md': 'max-w-md', 'lg': 'max-w-lg', 'xl': 'max-w-xl', '3xl': 'max-w-3xl' };
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+                    <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} transform animate-fade-in-up max-h-[90vh] flex flex-col`} onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-5 border-b sticky top-0 bg-white z-10 no-print"><h2 className="text-lg font-semibold text-gray-800">{title}</h2><button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X /></button></div>
+                        <div className="overflow-y-auto">{children}</div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const CrudModal = ({ isOpen, onClose, onSave, onDelete, children, title, isEdit, saveButtonText = "Simpan", submissionStatus, item }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title={title}>
+                <form onSubmit={(e) => { e.preventDefault(); onSave(); }}>
+                    <div className="p-6 space-y-4">{children}</div>
+                    <div className="p-5 bg-gray-50 rounded-b-xl flex justify-between items-center">
+                        <div>
+                            {isEdit && onDelete && (
+                                <button type="button" onClick={onDelete} disabled={submissionStatus.type !== null} className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:bg-red-400 flex items-center">
+                                    {submissionStatus.type === 'delete' && <Spinner className="h-5 w-5 mr-2"/>}
+                                    Hapus
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-3">
+                            <button type="button" onClick={onClose} disabled={submissionStatus.type !== null} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 disabled:opacity-50">Batal</button>
+                            <button type="submit" disabled={submissionStatus.type !== null} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-blue-400 flex items-center justify-center min-w-[100px]">
+                                {submissionStatus.type === 'save' ? <Spinner className="h-5 w-5"/> : saveButtonText}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </Modal>
+        );
+
+        const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children, submissionStatus }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
+                <div className="p-6 text-center">
+                    <AlertTriangle className="mx-auto h-12 w-12 text-red-400" />
+                    <h3 className="mt-2 text-lg font-medium text-gray-900">{title}</h3>
+                    <div className="mt-2 text-sm text-gray-500">{children}</div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-xl">
+                    <button type="button" disabled={submissionStatus.type !== null} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm disabled:bg-red-400" onClick={onConfirm}>
+                        {submissionStatus.type === 'confirm' || submissionStatus.type === 'delete' ? <Spinner className="h-5 w-5"/> : "Ya, Lanjutkan"}
+                    </button>
+                    <button type="button" disabled={submissionStatus.type !== null} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50" onClick={onClose}>Batal</button>
+                </div>
+            </Modal>
+        );
+
+        const CustomerModal = ({ isOpen, onClose, onSave, onDelete, item, submissionStatus }) => {
+            const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
+            useEffect(() => { setFormData(item || { name: '', email: '', whatsapp: '' }); }, [item, isOpen]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave(formData)} onDelete={onDelete} title={item ? 'Edit Pelanggan' : 'Tambah Pelanggan'} isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">No. WhatsApp</label><input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                </CrudModal>
+            );
+        };
+        const ProductModal = ({ isOpen, onClose, onSave, onDelete, item, submissionStatus, products }) => {
+            const [formData, setFormData] = useState({ name: '', type: '', price: 0, cycle: 'Tahunan', status: 'Tersedia' });
+            const [isCustomType, setIsCustomType] = useState(false);
+
+            // Ambil tipe unik dari produk yang sudah ada
+            const typeOptions = Array.from(new Set(products.map(p => p.type)));
+
+            useEffect(() => {
+                if (item) {
+                    setFormData(item);
+                    setIsCustomType(item.type && !typeOptions.includes(item.type));
+                } else {
+                    setFormData({ name: '', type: '', price: 0, cycle: 'Tahunan', status: 'Tersedia' });
+                    setIsCustomType(false);
+                }
+            }, [item, isOpen]);
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) || 0 : value }));
+            };
+
+            const handleTypeChange = (e) => {
+                if (e.target.value === '__custom__') {
+                    setIsCustomType(true);
+                    setFormData(prev => ({ ...prev, type: '' }));
+                } else {
+                    setIsCustomType(false);
+                    setFormData(prev => ({ ...prev, type: e.target.value }));
+                }
+            };
+
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave(formData)} onDelete={onDelete} item={item} title={item ? 'Edit Produk' : 'Tambah Produk'} isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Nama Produk</label>
+                        <input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Tipe</label>
+                        <select name="type" value={isCustomType ? '__custom__' : (formData.type || '')} onChange={handleTypeChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">
+                            <option value="">-- Pilih Tipe --</option>
+                            {typeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+                            <option value="__custom__">+ Tipe Baru...</option>
+                        </select>
+                        {isCustomType && (
+                            <input
+                                type="text"
+                                name="type"
+                                value={formData.type || ''}
+                                onChange={handleChange}
+                                placeholder="Tulis tipe baru"
+                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-2"
+                                required
+                            />
+                        )}
+                    </div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Harga (Rp)</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Siklus</label><select name="cycle" value={formData.cycle} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Tahunan</option><option>Bulanan</option><option>Sekali Bayar</option></select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Status</label><select name="status" value={formData.status} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Tersedia</option><option>Diarsipkan</option></select></div>
+                </CrudModal>
+            );
+        };
+        const ServiceModal = ({ isOpen, onClose, onSave, onDelete, item, customers, products, submissionStatus }) => {
+            const [formData, setFormData] = useState({ customerId: '', productId: '', name: '', price: 0, expiryDate: '', status: 'Aktif' });
+            useEffect(() => { if (item) { setFormData({ ...item, expiryDate: new Date(item.expiryDate).toISOString().split('T')[0] }); } else { setFormData({ customerId: '', productId: '', name: '', price: 0, expiryDate: '', status: 'Aktif' }); } }, [item, isOpen]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            useEffect(() => { if(formData.productId) { const product = products.find(p => p.id == formData.productId); if(product) { setFormData(prev => ({...prev, price: product.price, type: product.type})); } } }, [formData.productId, products]);
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave({...formData, expiryDate: new Date(formData.expiryDate)})} onDelete={onDelete} title="Kelola Layanan" isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Pelanggan</label><select name="customerId" value={formData.customerId} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">{customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.customerId})</option>)}</select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Produk</label><select name="productId" value={formData.productId} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">{products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}</select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Domain</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Harga (Rp)</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Tanggal Berakhir</label><input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Status</label><select name="status" value={formData.status} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Aktif</option><option>Suspended</option><option>Pending</option></select></div>
+                </CrudModal>
+            );
+        };
+        const NewOrderModal = ({ isOpen, onClose, onSave, customers, products, submissionStatus, initialProductId }) => {
+            const [formData, setFormData] = useState({ customerId: '', productId: '', domain: '', price: 0, expiryDate: '' });
+            const selectedProduct = useMemo(() => products.find(p => p.id == formData.productId), [products, formData.productId]);
+            
+            useEffect(() => {
+                if (isOpen) {
+                    setFormData({
+                        customerId: '',
+                        productId: initialProductId || '',
+                        domain: '',
+                        price: 0,
+                        expiryDate: ''
+                    });
+                }
+            }, [isOpen, initialProductId]);
+
+            useEffect(() => { if (selectedProduct) { const today = new Date(); const newExpiryDate = new Date(today); if (selectedProduct.cycle === 'Tahunan') newExpiryDate.setFullYear(today.getFullYear() + 1); else if (selectedProduct.cycle === 'Bulanan') newExpiryDate.setMonth(today.getMonth() + 1); setFormData(p => ({ ...p, price: selectedProduct.price, expiryDate: newExpiryDate.toISOString().split('T')[0] })); } else { setFormData(p => ({ ...p, price: 0, expiryDate: '' })); } }, [selectedProduct]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            const handleSave = () => { if (!formData.customerId || !formData.productId || !formData.domain) { return; } onSave({ ...formData, expiryDate: new Date(formData.expiryDate) }); };
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={handleSave} title="Buat Layanan Baru" saveButtonText="Simpan Layanan" submissionStatus={submissionStatus}>
+                    <label className="block text-sm font-medium text-gray-700">Pilih Pelanggan</label><select name="customerId" value={formData.customerId} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg bg-white"><option value="">-- Pilih Pelanggan --</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.customerId})</option>)}</select>
+                    <label className="block text-sm font-medium text-gray-700">Pilih Produk</label><select name="productId" value={formData.productId} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg bg-white"><option value="">-- Pilih Produk --</option>{products.filter(p => p.status === 'Tersedia').map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}</select>
+                    {selectedProduct && <div className='bg-gray-50 p-4 rounded-lg my-4 space-y-2 text-sm'><p><span className='font-semibold'>Harga:</span> Rp {Number(selectedProduct.price).toLocaleString('id-ID')}</p><p><span className='font-semibold'>Siklus:</span> {selectedProduct.cycle}</p></div>}
+                    <label className="block text-sm font-medium text-gray-700">Nama Domain</label><input type="text" name="domain" value={formData.domain} onChange={handleChange} placeholder="contohdomain.com" className="w-full border border-gray-300 rounded-lg p-2.5" />
+                    <label className="block text-sm font-medium text-gray-700">Tanggal Berakhir</label><input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" />
+                </CrudModal>
+            );
+        };
+        const ProfileModal = ({ isOpen, onClose, onSave, profile, submissionStatus }) => {
+            const [formData, setFormData] = useState({ name: '', email: '', avatarUrl: null });
+            const [imagePreview, setImagePreview] = useState(null);
+            const fileInputRef = useRef(null);
+            useEffect(() => { if (isOpen) { setFormData(profile || { name: '', email: '', avatarUrl: null }); setImagePreview(profile.avatarUrl); } }, [profile, isOpen]);
+            const handleImageChange = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImagePreview(reader.result); reader.readAsDataURL(file); } };
+            const handleSave = () => onSave({ ...formData, avatarUrl: imagePreview });
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={handleSave} title="Edit Profil" saveButtonText="Simpan Perubahan" submissionStatus={submissionStatus}>
+                    <div className="flex flex-col items-center mb-4"><div className="relative group"><Avatar name={formData.name} imageUrl={imagePreview} size="lg" /><button type="button" onClick={() => fileInputRef.current.click()} className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center rounded-full"><Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" /></button><input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" /></div></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label><input type="text" name="name" value={formData.name} onChange={(e) => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Email</label><input type="email" name="email" value={formData.email} onChange={(e) => setFormData(p => ({...p, email: e.target.value}))} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div className="border-t pt-4 mt-4"><h3 className="font-semibold text-gray-700 mb-2">Ubah Kata Sandi</h3><div><label className="block text-sm font-medium text-gray-600 mb-1">Kata Sandi Lama</label><input type="password" name="old_password" placeholder="••••••••" className="w-full border border-gray-300 rounded-lg p-2.5" /></div><div><label className="block text-sm font-medium text-gray-600 mb-1">Kata Sandi Baru</label><input type="password" name="new_password" placeholder="••••••••" className="w-full border border-gray-300 rounded-lg p-2.5" /></div></div>
+                </CrudModal>
+            );
+        };
+        const NotificationPopover = ({ isOpen, onClose, notifications, onNotificationClick, onNavigate }) => {
+            const popoverRef = useRef(null);
+            useEffect(() => { const handleClickOutside = (event) => { if (popoverRef.current && !popoverRef.current.contains(event.target)) onClose(); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen, onClose]);
+            if (!isOpen) return null;
+            const latestNotifications = notifications.slice(0, 9);
+            return (
+                <div
+                  ref={popoverRef}
+                  className={`
+                    fixed
+                    top-20
+                    left-1
+                    -translate-x-1/2
+                    w-[95vw]
+                    max-w-xs
+                    sm:absolute sm:top-16 sm:right-2 sm:left-auto sm:translate-x-0 sm:w-[350px] sm:max-w-sm
+                    bg-white rounded-lg shadow-xl border z-50 animate-fade-in-down
+                    p-2
+                  `}
+                >
+                    <div className="flex justify-between items-center p-3 border-b"><h4 className="font-semibold">Notifikasi</h4><button onClick={() => onNotificationClick({ id: 'all' })} className="text-sm text-blue-600">Tandai semua dibaca</button></div>
+                    <div className="max-h-96 overflow-y-auto">{latestNotifications.map(notif => (<button key={notif.id} onClick={() => onNotificationClick(notif)} className={`w-full text-left flex items-start p-3 gap-3 border-b ${!notif.read ? 'bg-blue-50' : 'hover:bg-gray-50'}`}><div className="flex-shrink-0 mt-1"><NotificationIcon iconName={notif.iconName} /></div><div className="flex-grow"><p className="text-sm">{notif.text}</p><p className="text-xs text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p></div>{!notif.read && <div className="w-2.5 h-2.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>}</button>))}</div>
+                    <div className="p-2 text-center bg-gray-50 rounded-b-lg"><button onClick={() => onNavigate('Notifikasi')} className="text-sm font-medium text-blue-600 w-full">Lihat Semua</button></div>
+                </div>
+            );
+        };
+        const InvoiceModal = ({ isOpen, onClose, invoiceData, companyProfile }) => {
+            const [isDownloading, setIsDownloading] = useState(false);
+            if (!isOpen || !invoiceData) return null;
+            const { invoice, customer, service, product } = invoiceData;
+            
+            const handleDownloadPdf = async () => {
+                setIsDownloading(true);
+                const { jsPDF } = window.jspdf;
+                const invoiceElement = document.getElementById('invoice-printable-area');
+                
+                try {
+                    const canvas = await html2canvas(invoiceElement, {
+                        scale: 2, // Higher scale for better quality
+                        useCORS: true,
+                        logging: false,
+                    });
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`Invoice-${invoice.id}.pdf`);
+                } catch (error) {
+                    console.error("Gagal membuat PDF:", error);
+                } finally {
+                    setIsDownloading(false);
+                }
+            };
+
+            const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const formatCurrency = (amount) => `Rp ${Number(amount).toLocaleString('id-ID')}`;
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title={`Invoice #${invoice.id}`} size="3xl">
+                    <div id="invoice-printable-area" className="p-4 sm:p-8 bg-white text-gray-800">
+                        <div className="grid grid-cols-2 items-start mb-8">
+                            <div>
+                                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZSj2-Jr1Xmkmg7GK7l21Z7SQUL5bUsqrefLm6Y7htHU9od4s05SYUzD5cKN4Zy0uf9rs&usqp=CAU" alt="Company Logo" className="h-10 mb-4" />
+                                <h2 className="font-bold text-gray-800">{companyProfile.name}</h2>
+                                <p className="text-sm text-gray-600">{companyProfile.email}</p>
+                            </div>
+                            <div className="text-right">
+                                <h1 className="text-3xl font-bold text-gray-800 uppercase">Invoice</h1>
+                                <p className="text-sm text-gray-500 mt-1"># {invoice.id}</p>
+                                <div className="mt-4"><StatusBadge status={invoice.status} size="lg" /></div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <p className="text-sm font-semibold text-gray-500 uppercase">Ditagihkan Kepada</p>
+                                <p className="font-bold text-gray-800 mt-1">{customer.name}</p>
+                                <p className="text-sm text-gray-600">{customer.email}</p>
+                                <p className="text-sm text-gray-600">{customer.whatsapp}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-semibold text-gray-500 uppercase">Tanggal Invoice</p>
+                                <p className="font-medium text-gray-800 mt-1">{formatDate(new Date())}</p>
+                                <p className="text-sm font-semibold text-gray-500 uppercase mt-4">Jatuh Tempo</p>
+                                <p className="font-medium text-gray-800 mt-1">{formatDate(invoice.dueDate)}</p>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="py-3 px-4 text-left font-semibold text-gray-600 uppercase">Deskripsi</th>
+                                        <th className="py-3 px-4 text-center font-semibold text-gray-600 uppercase">Kuantitas</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-gray-600 uppercase">Harga</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-gray-600 uppercase">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    <tr>
+                                        <td className="py-3 px-4">
+                                            <p className="font-medium">{product.name} - {service.name}</p>
+                                            <p className="text-xs text-gray-500">Siklus: {product.cycle}</p>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">1</td>
+                                        <td className="py-3 px-4 text-right">{formatCurrency(invoice.amount)}</td>
+                                        <td className="py-3 px-4 text-right font-medium">{formatCurrency(invoice.amount)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex justify-end mt-8">
+                            <div className="w-full max-w-xs">
+                                <div className="flex justify-between text-gray-600">
+                                    <p>Subtotal</p>
+                                    <p>{formatCurrency(invoice.amount)}</p>
+                                </div>
+                                <div className="flex justify-between text-gray-600 mt-2">
+                                    <p>Pajak (0%)</p>
+                                    <p>{formatCurrency(0)}</p>
+                                </div>
+                                <div className="border-t my-2"></div>
+                                <div className="flex justify-between font-bold text-lg text-gray-800">
+                                    <p>Total Tagihan</p>
+                                    <p>{formatCurrency(invoice.amount)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t mt-8 pt-6 text-sm text-gray-600">
+                            <h3 className="font-semibold text-gray-800 mb-2">Instruksi Pembayaran</h3>
+                            <p>Silakan lakukan pembayaran ke rekening berikut:</p>
+                            <p className="font-medium mt-1">Bank BCA - 1234567890 a/n {companyProfile.name}</p>
+                            <p className="mt-4">Terima kasih atas kepercayaan Anda.</p>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-b-xl flex justify-end items-center gap-3 no-print">
+                        <button onClick={handleDownloadPdf} disabled={isDownloading} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 flex items-center gap-2 disabled:opacity-50">
+                            {isDownloading ? <Spinner className="h-4 w-4" /> : <Download size={16} />}
+                            {isDownloading ? 'Mengunduh...' : 'Download'}
+                        </button>
+                        <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">Tutup</button>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // --- VIEWS / PAGES ---
+        const BerandaView = ({ customers, services, invoices, products, onOpenModal, onNewOrderClick, adminProfile }) => {
+            const [dateRange, setDateRange] = useState('this_month');
+            const [customRange, setCustomRange] = useState({ start: '', end: '' });
+            const [expiringCurrentPage, setExpiringCurrentPage] = useState(1);
+            const EXPIRING_ITEMS_PER_PAGE = 5;
+            const { startDate, endDate } = useMemo(() => { const now = new Date(); let start = new Date(); let end = new Date(); switch (dateRange) { case '7_days': start.setDate(now.getDate() - 7); break; case 'this_month': start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth() + 1, 0); break; case 'this_year': start = new Date(now.getFullYear(), 0, 1); end = new Date(now.getFullYear(), 11, 31); break; case 'custom': start = customRange.start ? new Date(customRange.start) : null; end = customRange.end ? new Date(customRange.end) : null; if(end) end.setHours(23, 59, 59, 999); break; } return { startDate: start, endDate: end }; }, [dateRange, customRange]);
+            
+            const filteredData = useMemo(() => {
+                if (!startDate || !endDate) return { customers: [], services: [], invoices: [] };
+                const fc = customers.filter(c => new Date(c.joinDate) >= startDate && new Date(c.joinDate) <= endDate);
+                const fs = services.filter(s => {
+                    const creationDate = new Date(s.creationDate);
+                    return creationDate >= startDate && creationDate <= endDate;
+                });
+                const fi = invoices.filter(i => new Date(i.dueDate) >= startDate && new Date(i.dueDate) <= endDate);
+                return { customers: fc, services: fs, invoices: fi };
+            }, [customers, services, invoices, startDate, endDate]);
+
+            const stats = useMemo(() => ([ { value: filteredData.customers.length, label: 'Pelanggan' }, { value: filteredData.services.length, label: 'Layanan' }, { value: filteredData.invoices.filter(i => i.status === 'Lunas').reduce((sum, i) => sum + i.amount, 0).toLocaleString('id-ID', {style: 'currency', currency: 'IDR'}), label: 'Pendapatan' }, ]), [filteredData]);
+            const revenueData = useMemo(() => { const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]; const data = months.map(month => ({ name: month, Pendapatan: 0 })); filteredData.invoices.forEach(inv => { if (inv.status === 'Lunas') { const monthIndex = new Date(inv.dueDate).getMonth(); data[monthIndex].Pendapatan += inv.amount; } }); return data; }, [filteredData.invoices]);
+            
+            const serviceCategoryData = useMemo(() => {
+                const counts = services.reduce((acc, service) => {
+                    acc[service.type] = (acc[service.type] || 0) + 1;
+                    return acc;
+                }, {});
+                const colors = { Website: '#3182CE', Domain: '#63B3ED', Hosting: '#90CDF4', 'Cloud VPS': '#BEE3F8' };
+                const order = ['Website', 'Domain', 'Hosting', 'Cloud VPS'];
+                const chartData = order
+                    .map(type => (counts[type] ? { name: type, value: counts[type], color: colors[type] || '#CBD5E0' } : null))
+                    .filter(Boolean);
+                Object.keys(counts).forEach(type => {
+                    if (!order.includes(type)) {
+                        chartData.push({ name: type, value: counts[type], color: colors[type] || '#CBD5E0' });
+                    }
+                });
+                return chartData;
+            }, [services]);
+
+            const expiringServices = useMemo(() => services.map(s => ({...s, customerName: (customers.find(c=>c.id === s.customerId) || {}).name })).filter(s => getServiceStatus(s) === 'Akan Berakhir').sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)), [services, customers]);
+            const paginatedExpiringServices = useMemo(() => { const startIndex = (expiringCurrentPage - 1) * EXPIRING_ITEMS_PER_PAGE; return expiringServices.slice(startIndex, startIndex + EXPIRING_ITEMS_PER_PAGE); }, [expiringServices, expiringCurrentPage]);
+            const expiringTotalPages = Math.ceil(expiringServices.length / EXPIRING_ITEMS_PER_PAGE);
+            
+            return (
+                <div className="p-4 md:p-6 space-y-6">
+                    <div className="bg-blue-600 text-white p-6 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between shadow-lg"><div className="flex items-center mb-4 md:mb-0"><div className="bg-blue-700 p-3 rounded-lg mr-4"><Layers size={32} /></div><div><h2 className="text-xl font-bold">Selamat Datang, {adminProfile.name}!</h2><p className="text-blue-200 mt-1">Kelola semua dari sini.</p></div></div><button onClick={onNewOrderClick} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2">New Order</button></div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"><h2 className="text-lg font-bold text-gray-800">Dashboard</h2><div className="flex flex-wrap items-center gap-2"><select value={dateRange} onChange={e => setDateRange(e.target.value)} className="bg-white border border-gray-300 rounded-md py-2 px-3 text-sm"><option value="7_days">7 Hari Terakhir</option><option value="this_month">Bulan Ini</option><option value="this_year">Tahun Ini</option><option value="custom">Kustom</option></select>{dateRange === 'custom' && (<div className="flex gap-2"><input type="date" value={customRange.start} onChange={e => setCustomRange(p => ({...p, start: e.target.value}))} className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm" /><input type="date" value={customRange.end} onChange={e => setCustomRange(p => ({...p, end: e.target.value}))} className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm" /></div>)}</div></div>
+                    <div><h3 className="text-base font-semibold text-gray-800 mb-4">Statistik</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{stats.map(stat => (<div key={stat.label} className="bg-white p-6 rounded-xl border text-center shadow-sm"><p className="text-3xl font-bold text-gray-800">{stat.value}</p><p className="text-gray-500 mt-1 text-sm">{stat.label}</p></div>))}</div></div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2 bg-white p-6 rounded-xl border shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Grafik Pendapatan</h3><BarChart data={revenueData} dataKey="Pendapatan" labelKey="name" /></div><div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Kategori Layanan</h3><DonutChart data={serviceCategoryData} /></div></div>
+                    <div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Layanan Akan Kedaluwarsa (30 Hari)</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['Produk', 'Domain', 'Pelanggan', 'Jatuh Tempo', 'Sisa Hari', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y divide-gray-200">{paginatedExpiringServices.length > 0 ? paginatedExpiringServices.map(service => { const daysLeft = Math.ceil((new Date(service.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)); const product = products.find(p => p.id === service.productId); return (<tr key={service.id} className="hover:bg-gray-50"><td className="py-3 px-4 whitespace-nowrap min-w-0">{product ? product.name : '-'}</td><td className="py-3 px-4">{service.name}</td><td className="py-3 px-4">{service.customerName}</td><td className="py-3 px-4">{formatDateID(service.expiryDate)}</td><td className="py-3 px-4 whitespace-nowrap min-w-0">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold whitespace-nowrap min-w-0">
+        <Clock className="w-3 h-3 mr-1 text-yellow-500" />
+        {daysLeft} hari
+    </span>
+</td><td className="py-3 px-4 text-center"><button onClick={() => onOpenModal('service', service)} className='bg-orange-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-orange-600 text-xs'>Kelola</button></td></tr>)}) : (<tr><td colSpan="6" className="text-center p-6 text-gray-500">Tidak ada layanan yang akan kedaluwarsa.</td></tr>)}</tbody></table></div><Pagination currentPage={expiringCurrentPage} totalPages={expiringTotalPages} onPageChange={setExpiringCurrentPage} /></div>
+                </div>
+            );
+        };
+        const PelangganView = ({ customers, onOpenModal, initialSearchTerm, onCustomerSelect }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 10;
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const filteredCustomers = useMemo(() => customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.email.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerId.toLowerCase().includes(searchTerm.toLowerCase())), [customers, searchTerm]);
+            const paginatedCustomers = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredCustomers.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredCustomers, currentPage]);
+            const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+            
+            if (customers.length === 0) {
+                return (
+                    <div className="p-4 md:p-6">
+                        <EmptyState icon={<Users size={24} />} title="Belum Ada Pelanggan" description="Mulai dengan menambahkan pelanggan pertama Anda.">
+                            <button onClick={() => onOpenModal('customer')} className='flex items-center mx-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md text-sm'>+ Tambah Pelanggan</button>
+                        </EmptyState>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-4 md:p-6"><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 className="text-lg font-semibold">Daftar Pelanggan</h3><div className='flex flex-row gap-2 w-full md:w-auto'>
+    <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder="Cari nama, email, atau ID..." className="flex-grow" />
+    <button onClick={() => onOpenModal('customer')} className='flex-shrink-0 flex items-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-md text-sm'>
+        <span className='hidden md:inline'>+ Pelanggan</span>
+        <span className='md:hidden'>+ Pelanggan</span>
+    </button>
+</div></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['ID Pelanggan', 'Nama', 'Kontak', 'No WhatsApp', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedCustomers.map(item => (
+        <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onCustomerSelect(item)}>
+            <td className="py-3 px-4 font-semibold">{item.customerId}</td>
+            <td className="py-3 px-4 font-medium">{item.name}</td>
+            <td className="py-3 px-4">{item.email}</td>
+            <td className="py-3 px-4">{item.whatsapp}</td>
+            <td className="py-3 px-4 text-center">
+                <button onClick={e => { e.stopPropagation(); onOpenModal('customer', item); }} className='p-2 text-gray-500 hover:text-orange-600 rounded-full'><Edit size={16}/></button>
+            </td>
+        </tr>
+    ))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const LayananView = ({ services, customers, products, onOpenModal, onNewServiceClick, initialSearchTerm }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [currentPage, setCurrentPage] = useState(1);
+            const [activeStatusFilter, setActiveStatusFilter] = useState('Semua');
+            const ITEMS_PER_PAGE = 10;
+            
+            const serviceTypes = useMemo(() => {
+                const types = [...new Set(products.map(p => p.type))];
+                const order = ['Website', 'Domain', 'Hosting', 'Cloud VPS'];
+                return order.filter(t => types.includes(t)).concat(types.filter(t => !order.includes(t)));
+            }, [products]);
+            
+            const [activeServiceType, setActiveServiceType] = useState(serviceTypes[0] || '');
+
+            useEffect(() => {
+                if(serviceTypes.length > 0 && !serviceTypes.includes(activeServiceType)) {
+                    setActiveServiceType(serviceTypes[0]);
+                }
+            }, [serviceTypes, activeServiceType]);
+
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const servicesWithDetails = useMemo(() => services.map(service => { const customer = customers.find(c => c.id === service.customerId); return { ...service, customerName: customer ? customer.name : 'N/A', customerIdentifier: customer ? customer.customerId : '', productName: (products.find(p => p.id === service.productId) || {}).name || 'N/A', currentStatus: getServiceStatus(service) }; }), [services, customers, products]);
+            const filteredServices = useMemo(() => servicesWithDetails.filter(s => { const searchMatch = (s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || s.customerIdentifier.toLowerCase().includes(searchTerm.toLowerCase())); const typeMatch = s.type === activeServiceType; const statusMatch = () => { if (activeStatusFilter === 'Semua') return true; if (activeStatusFilter === 'Aktif') return s.currentStatus === 'Aktif'; if (activeStatusFilter === 'Pending') return ['Pending', 'Akan Berakhir', 'Jatuh Tempo'].includes(s.currentStatus); if (activeStatusFilter === 'Suspended') return s.currentStatus === 'Suspended'; return false; }; return searchMatch && typeMatch && statusMatch(); }), [servicesWithDetails, searchTerm, activeServiceType, activeStatusFilter]);
+            const paginatedServices = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredServices.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredServices, currentPage]);
+            const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
+            useEffect(() => { setCurrentPage(1); }, [activeServiceType, activeStatusFilter]);
+            const statusTabs = ['Semua', 'Aktif', 'Pending', 'Suspended'];
+            return (
+                <div className="p-4 md:p-6"><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><div className="border-b mb-4"><nav className="-mb-px flex space-x-6 overflow-x-auto">{serviceTypes.map(type => (<button key={type} onClick={() => setActiveServiceType(type)} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeServiceType === type ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{type}</button>))} </nav></div><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><div className="border-b w-full md:w-auto"><nav className="-mb-px flex space-x-6 overflow-x-auto">{statusTabs.map(status => (<button key={status} onClick={() => setActiveStatusFilter(status)} className={`py-2 px-1 border-b-2 font-medium text-sm ${activeStatusFilter === status ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{status}</button>))} </nav></div><div className='flex items-center space-x-2 w-full md:w-auto md:max-w-xs'><SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder='Cari layanan...' /><button onClick={onNewServiceClick} className='flex-shrink-0 flex items-center bg-blue-600 text-white font-bold py-2 px-4 rounded-md text-sm'>
+    + Layanan
+</button></div></div>{filteredServices.length > 0 ? (<div className="mt-6 overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['Produk & Layanan', 'Harga', 'Jatuh Tempo', 'Status', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Status' || h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedServices.map(service => (
+        <tr key={service.id} className="hover:bg-gray-50">
+            <td className="py-3 px-4"><div className="font-semibold">{service.name}</div><div className="text-xs text-gray-500">{service.customerName} ({service.customerIdentifier})</div></td>
+            <td className="py-3 px-4 font-medium">Rp {service.price.toLocaleString('id-ID')}</td>
+            <td className="py-3 px-4">{formatDateID(service.expiryDate)}</td>
+            <td className="py-3 px-4 text-center"><StatusBadge status={service.currentStatus} /></td>
+            <td className="py-3 px-4 text-center"><button onClick={() => onOpenModal('service', service)} className='bg-orange-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-orange-600 text-xs'>Kelola</button></td>
+        </tr>
+    ))}
+</tbody>
+</table><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div>) : (<EmptyState icon={<Layers size={24} />} title="Tidak Ada Layanan" description="Tidak ada layanan yang cocok dengan filter yang Anda pilih." />)}</div></div>
+            );
+        };
+        const TagihanView = ({ invoices, customers, services, products, onUpdateInvoiceStatus, onRunBillingCheck, onViewInvoice, initialSearchTerm }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [automationResult, setAutomationResult] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 20;
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const invoicesWithDetails = useMemo(() => invoices.map(invoice => { const customer = customers.find(c => c.id === invoice.customerId); const service = services.find(s => s.id === invoice.serviceId); const product = service ? products.find(p => p.id === service.productId) : null; return { ...invoice, customer, service, product, customerName: customer ? customer.name : 'N/A', customerIdentifier: customer ? customer.customerId : '', dueDateFormatted: formatDateID(invoice.dueDate), serviceType: service ? service.type : 'N/A', productName: product ? product.name : 'N/A' }; }), [invoices, customers, services, products]);
+            const filteredInvoices = useMemo(() => invoicesWithDetails.filter(i => i.id.toLowerCase().includes(searchTerm.toLowerCase()) || i.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || i.serviceName.toLowerCase().includes(searchTerm.toLowerCase())), [invoicesWithDetails, searchTerm]);
+            const paginatedInvoices = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredInvoices.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredInvoices, currentPage]);
+            const totalPages = Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE);
+            const handleRunCheck = async () => { setIsLoading(true); setAutomationResult(null); const count = await onRunBillingCheck(); setAutomationResult(`Proses selesai. ${count} tagihan baru berhasil dibuat.`); setIsLoading(false); };
+            
+            return (
+                <div className="p-4 md:p-6 space-y-6"><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><h3 className="text-lg font-semibold mb-4">Pusat Otomatisasi Tagihan</h3><div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg"><div className="flex"><div className="py-1"><Bot className="h-6 w-6 text-blue-500 mr-4" /></div><div><p className="font-semibold text-blue-800">Otomatisasi Penagihan</p><p className="text-sm text-blue-700 mt-1">Pindai semua layanan yang akan kedaluwarsa (dalam 30 hari) dan belum memiliki tagihan untuk dibuatkan secara otomatis.</p><button onClick={handleRunCheck} disabled={isLoading} className="mt-4 inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300">{isLoading ? 'Memproses...' : 'Jalankan Pemeriksaan'}</button>{automationResult && <p className="mt-3 text-sm font-semibold text-green-700">{automationResult}</p>}</div></div></div></div><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 className="text-lg font-semibold">Daftar Semua Tagihan</h3><div className='w-full md:w-1/3'><SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder='Cari tagihan...' /></div></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['No. Invoice', 'Layanan', 'Pelanggan', 'Tanggal Terbit', 'Jatuh Tempo', 'Status', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${['Status','Aksi','Tanggal Terbit','Jatuh Tempo'].includes(h) ? 'text-center' : 'text-left'}`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedInvoices.map(invoice => (
+        <tr key={invoice.id} className="hover:bg-gray-50">
+            <td className="py-3 px-4 font-medium text-blue-600">{invoice.id}</td>
+            <td className="py-3 px-4"><div>{invoice.productName}</div><div className="text-xs text-gray-500">{invoice.serviceName}</div></td>
+            <td className="py-3 px-4"><div>{invoice.customerName}</div><div className="text-xs text-gray-500">{invoice.customerIdentifier}</div></td>
+            <td className="py-3 px-4 text-center">{formatDateID(new Date())}</td>
+            <td className="py-3 px-4 text-center font-semibold text-red-600">{formatDateID(invoice.dueDate)}</td>
+            <td className="py-3 px-4 text-center"><StatusBadge status={invoice.status} /></td>
+            <td className="py-3 px-4 text-center flex flex-col gap-2 items-center">
+                <button onClick={() => onViewInvoice(invoice)} className='bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-md text-xs'>Lihat Invoice</button>
+                {(invoice.status === 'Belum Dibayar' || invoice.status === 'Jatuh Tempo') && (
+                    <button onClick={() => onUpdateInvoiceStatus(invoice.id, 'Lunas')} className='bg-green-500 text-white font-semibold px-3 py-1.5 rounded-md text-xs flex items-center justify-center min-w-[100px]'>Tandai Lunas</button>
+                )}
+            </td>
+        </tr>
+    ))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const ProdukView = ({ products, onOpenModal, onNewServiceForProduct }) => {
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 10;
+            const paginatedProducts = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return products.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [products, currentPage]);
+            const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+            return (
+                <div className="p-4 md:p-6"><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold">Daftar Produk</h3><button onClick={() => onOpenModal('product')} className='flex items-center bg-blue-600 text-white font-bold py-2 px-4 rounded-md text-sm'>+ Produk</button></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['Nama Produk', 'Tipe', 'Harga', 'Status', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Status' || h === 'Aksi' ? 'text-center' : 'text-left'}`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedProducts.map(item => (
+        <tr key={item.id} className="hover:bg-gray-50">
+            <td className="py-3 px-4 font-medium">{item.name}</td>
+            <td className="py-3 px-4">{item.type}</td>
+            <td className="py-3 px-4">Rp {item.price.toLocaleString('id-ID')}</td>
+            <td className="py-3 px-4 text-center"><StatusBadge status={item.status} /></td>
+            <td className="py-3 px-4 text-center flex justify-center gap-2">
+                <button onClick={() => onOpenModal('product', item)} className='bg-orange-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-orange-600 text-xs'>Kelola</button>
+            </td>
+        </tr>
+    ))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const NotifikasiView = ({ notifications, onNotificationClick }) => {
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 9;
+            const paginatedNotifications = useMemo(() => {
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                return notifications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+            }, [notifications, currentPage]);
+            const totalPages = Math.ceil(notifications.length / ITEMS_PER_PAGE);
+            return (
+                <div className="p-4 md:p-6"><div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm"><h3 className="text-lg font-semibold mb-4">Semua Notifikasi</h3><div className="space-y-2">{paginatedNotifications.length > 0 ? paginatedNotifications.map(notif => (<button key={notif.id} onClick={() => onNotificationClick(notif)} className={`w-full text-left flex items-start p-4 gap-4 border rounded-lg ${!notif.read ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'}`}><div className="flex-shrink-0 mt-1"><NotificationIcon iconName={notif.iconName} /></div><div className="flex-grow"><p className="text-sm">{notif.text}</p><p className="text-xs text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p></div>{!notif.read && <div className="w-2.5 h-2.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>}</button>)) : <EmptyState icon={<Bell size={24}/>} title="Tidak Ada Notifikasi" description="Semua notifikasi akan muncul di sini." />}</div>{totalPages > 1 && (<Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />)}</div></div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        function App() {
+            const [activePage, setActivePage] = useState('Beranda');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [pageContext, setPageContext] = useState({});
+            
+            // Data states
+            const [customers, setCustomers] = useState([]);
+            const [products, setProducts] = useState([]);
+            const [services, setServices] = useState([]);
+            const [invoices, setInvoices] = useState([]);
+            const [notifications, setNotifications] = useState([]);
+            const [adminProfile, setAdminProfile] = useState({ name: 'Admin', email: 'admin@example.com', avatarUrl: null });
+            
+            // Loading and Error states
+            const [isLoading, setIsLoading] = useState(true);
+            const [isFetching, setIsFetching] = useState(false);
+            const [error, setError] = useState(null);
+            const [submissionStatus, setSubmissionStatus] = useState({ type: null });
+
+            // Modal states
+            const [modalType, setModalType] = useState(null);
+            const [editingItem, setEditingItem] = useState(null);
+            const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
+            const [preselectedProductId, setPreselectedProductId] = useState(null);
+            const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+            const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+            const [invoiceModalData, setInvoiceModalData] = useState(null);
+            const [toasts, setToasts] = useState([]);
+            const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+            const addToast = (message, type = 'info') => { setToasts(prev => [...prev, { id: Date.now(), message, type }]); };
+            const removeToast = (id) => { setToasts(prev => prev.filter(t => t.id !== id)); };
+            
+            // --- DATA FETCHING & PARSING ---
+            const fetchData = useCallback(async (showMainLoader = true) => {
+                if (SCRIPT_URL === 'YOUR_DEPLOYED_SCRIPT_URL_HERE') {
+                    setError("Harap masukkan URL Google Apps Script Anda di dalam kode.");
+                    setIsLoading(false);
+                    return;
+                }
+                if(showMainLoader) setIsLoading(true);
+                setIsFetching(true);
+                setError(null);
+                try {
+                    const response = await fetch(SCRIPT_URL);
+                    if (!response.ok) throw new Error('Gagal mengambil data dari server.');
+                    const result = await response.json();
+                    if (!result.success) throw new Error(result.error || 'Terjadi kesalahan pada server script.');
+                    
+                    const data = result.data;
+                    setCustomers(data.customers.map(c => ({...c, id: Number(c.id), joinDate: new Date(c.joinDate)})));
+                    setProducts(data.products.map(p => ({...p, id: Number(p.id), price: Number(p.price)})));
+                    setServices(data.services.map(s => ({...s, id: Number(s.id), customerId: Number(s.customerId), productId: Number(s.productId), price: Number(s.price), expiryDate: new Date(s.expiryDate), creationDate: s.creationDate ? new Date(s.creationDate) : new Date(s.expiryDate) })));
+                    setInvoices(data.invoices.map(i => ({...i, id: i.id.toString(), customerId: Number(i.customerId), serviceId: Number(i.serviceId), amount: Number(i.amount), dueDate: new Date(i.dueDate)})));
+                    setNotifications(data.notifications.map(n => ({...n, id: Number(n.id), read: n.read === true || n.read === 'TRUE', createdAt: n.createdAt })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                    if (data.profile && data.profile.length > 0) {
+                        setAdminProfile(data.profile[0]);
+                    }
+
+                } catch (err) {
+                    setError(err.message);
+                    addToast(err.message, 'error');
+                } finally {
+                    if(showMainLoader) setIsLoading(false);
+                    setIsFetching(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                fetchData().then(() => {
+                    // Panggil sinkronisasi status setelah data di-fetch
+                    syncServiceStatuses(services, postData, fetchData);
+                });
+            }, []);
+
+            useEffect(() => {
+                if (activePage === 'Beranda') {
+                    syncServiceStatuses(services, postData, fetchData);
+                }
+            }, [activePage]);
+
+            const postData = useCallback(async (action, data) => {
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify({ action, data })
+                    });
+                    
+                    if (!response.ok) {
+                         throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'An unknown error occurred on the server.');
+                    }
+                    
+                    return { success: true, data: result.data };
+                } catch (err) {
+                    console.error("postData Error:", err);
+                    addToast(`Gagal menyimpan data: ${err.message}`, 'error');
+                    return { success: false, error: err.message };
+                }
+            }, []);
+
+            const addNotification = useCallback(async (notifData) => {
+                const newNotif = {
+                    ...notifData,
+                    id: Date.now(),
+                    createdAt: new Date().toISOString(),
+                    read: false,
+                };
+                setNotifications(prev => [newNotif, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                await postData('SAVE_NOTIFICATION', newNotif);
+            }, [postData]);
+
+            const handleSave = async (type, itemToSave) => {
+                setSubmissionStatus({ type: 'save' });
+                const isNew = !itemToSave.id;
+                const action = `SAVE_${type.toUpperCase()}`;
+
+                if (type === 'customer' && isNew) {
+                    itemToSave.joinDate = new Date();
+                }
+
+                const result = await postData(action, itemToSave);
+                
+                if (result.success) {
+                    if (type === 'customer' && isNew) {
+                        await addNotification({
+                            iconName: 'Users',
+                            text: `Pelanggan baru, ${itemToSave.name}, telah ditambahkan.`,
+                            page: 'Pelanggan',
+                            targetId: itemToSave.name
+                        });
+                    }
+                    addToast(`Data ${type} berhasil disimpan.`, 'success');
+                    closeModal();
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            const handleDelete = (type, item) => {
+                const performDelete = async () => {
+                    setSubmissionStatus({ type: 'delete' });
+                    const action = `DELETE_${type.toUpperCase()}`;
+                    const result = await postData(action, { id: item.id });
+                    if(result.success) {
+                        addToast(`${type} berhasil dihapus.`, 'success');
+                        setConfirmModalState({ isOpen: false });
+                        closeModal();
+                        await fetchData(false);
+                    }
+                    setSubmissionStatus({ type: null });
+                };
+
+                setConfirmModalState({
+                    isOpen: true,
+                    onConfirm: performDelete,
+                    title: `Hapus ${type}`,
+                    message: `Anda yakin ingin menghapus ${type} "${item.name || item.id}"? Tindakan ini tidak dapat diurungkan.`
+                });
+            };
+            
+            const handleSaveOrder = async (orderData) => {
+                setSubmissionStatus({ type: 'save' });
+                const product = products.find(p => p.id == orderData.productId);
+                if (!product) {
+                    addToast('Produk tidak valid.', 'error');
+                    setSubmissionStatus({ type: null });
+                    return;
+                }
+
+                const newService = {
+                    customerId: parseInt(orderData.customerId),
+                    productId: parseInt(orderData.productId),
+                    name: orderData.domain,
+                    type: product.type,
+                    status: 'Aktif',
+                    creationDate: new Date(),
+                    expiryDate: orderData.expiryDate,
+                    price: orderData.price
+                };
+                
+                const result = await postData('SAVE_SERVICE', newService);
+                if (result.success) {
+                    await addNotification({
+                        iconName: 'Layers',
+                        text: `Layanan baru ${orderData.domain} telah dibuat.`,
+                        page: 'Layanan',
+                        targetId: orderData.domain
+                    });
+                    addToast('Layanan baru berhasil dibuat!', 'success');
+                    setIsNewOrderModalOpen(false);
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            // FIX: Unified confirmation logic
+            const handleUpdateInvoiceStatus = (invoiceId, newStatus) => {
+                setConfirmModalState({
+                    isOpen: true,
+                    title: "Konfirmasi Pembayaran",
+                    message: `Apakah Anda yakin ingin menandai tagihan ${invoiceId} sebagai Lunas?`,
+                    onConfirm: async () => {
+                        setSubmissionStatus({ type: 'confirm' });
+                        
+                        const result = await postData('UPDATE_INVOICE_STATUS', { id: invoiceId, status: newStatus });
+                        
+                        setSubmissionStatus({ type: null });
+                        setConfirmModalState({isOpen: false});
+
+                        if (result.success) {
+                            if (newStatus === 'Lunas') {
+                                await addNotification({
+                                    iconName: 'CheckCircle',
+                                    text: `Tagihan ${invoiceId} telah lunas.`,
+                                    page: 'Tagihan',
+                                    targetId: invoiceId
+                                });
+
+                                const invoice = invoices.find(inv => inv.id === invoiceId);
+                                const service = services.find(s => s.id === invoice.serviceId);
+                                const product = products.find(p => p.id === service.productId);
+                                if (service && product) {
+                                    const serviceToUpdate = { ...service };
+                                    serviceToUpdate.status = 'Aktif';
+                                    if (product.cycle !== 'Sekali Bayar') {
+                                        const newExpiryDate = new Date(serviceToUpdate.expiryDate);
+                                        if (product.cycle === 'Tahunan') newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
+                                        else if (product.cycle === 'Bulanan') newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
+                                        serviceToUpdate.expiryDate = newExpiryDate;
+                                    }
+                                    await postData('BATCH_UPDATE_SERVICES', [serviceToUpdate]);
+                                }
+                            }
+                            addToast(`Tagihan ${invoiceId} diperbarui.`, 'success');
+                            await fetchData(false);
+                        }
+                    }
+                });
+            };
+
+            const handleRunBillingCheck = async () => {
+                const now = new Date();
+                const thirtyDaysFromNow = new Date();
+                thirtyDaysFromNow.setDate(now.getDate() + 30);
+                let newInvoices = [];
+                
+                services.forEach(service => {
+                    const expiryDate = new Date(service.expiryDate);
+                    const product = products.find(p => p.id === service.productId);
+                    if (product && product.cycle !== 'Sekali Bayar' && expiryDate <= thirtyDaysFromNow) {
+                        const hasExistingInvoice = invoices.some(inv => inv.serviceId === service.id && (inv.status === 'Belum Dibayar' || inv.status === 'Jatuh Tempo'));
+                        if (!hasExistingInvoice) {
+                            newInvoices.push({
+                                id: `INV-${Date.now().toString().slice(-5)}-${service.id}`,
+                                customerId: service.customerId, serviceId: service.id, serviceName: service.name,
+                                amount: service.price, status: 'Belum Dibayar', dueDate: service.expiryDate
+                            });
+                        }
+                    }
+                });
+
+                if (newInvoices.length > 0) {
+                    const result = await postData('SAVE_INVOICES', newInvoices);
+                    if (result.success) {
+                        await addNotification({
+                            iconName: 'FileText',
+                            text: `${newInvoices.length} tagihan baru berhasil dibuat secara otomatis.`,
+                            page: 'Tagihan'
+                        });
+                        await fetchData(false);
+                    }
+                }
+                return newInvoices.length;
+            };
+
+            const handleSaveProfile = async (newProfile) => {
+                setSubmissionStatus({ type: 'save' });
+                const result = await postData('SAVE_PROFILE', { ...newProfile, id: 1 });
+                if (result.success) {
+                    addToast('Profil berhasil diperbarui.', 'success');
+                    closeModal();
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            const handleNotificationClick = async (notification) => {
+                const currentUnread = notifications.find(n => n.id === notification.id)?.read === false;
+                const markAll = notification.id === 'all';
+
+                const updatedNotifications = notifications.map(n => 
+                    (markAll || n.id === notification.id) ? { ...n, read: true } : n
+                );
+                setNotifications(updatedNotifications);
+                
+                if (notification.page) {
+                    handleNavigate(notification.page, { initialSearchTerm: notification.targetId });
+                }
+
+                const notificationsToUpdateInSheet = markAll 
+                    ? notifications.filter(n => !n.read).map(n => ({ id: n.id, read: true }))
+                    : (currentUnread ? [{ id: notification.id, read: true }] : []);
+                
+                if (notificationsToUpdateInSheet.length > 0) {
+                    await postData('BATCH_UPDATE_NOTIFICATIONS', notificationsToUpdateInSheet);
+                }
+            };
+            
+            const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
+            const closeSidebar = useCallback(() => { if (window.innerWidth < 768) setIsSidebarOpen(false); }, []);
+            const handleNavigate = useCallback((page, context = {}) => { setActivePage(page); setPageContext(context); setIsNotificationOpen(false); closeSidebar(); }, []);
+            const openModal = (type, item = null) => { closeSidebar(); if (type === 'profile') { setIsProfileModalOpen(true); return; } setModalType(type); setEditingItem(item); };
+            const closeModal = () => { setModalType(null); setEditingItem(null); setIsProfileModalOpen(false); setPreselectedProductId(null); setInvoiceModalData(null); };
+            const handleCustomerSelect = (customer) => handleNavigate('Layanan', { initialSearchTerm: customer.customerId });
+            const handleNewServiceForProduct = (product) => {
+                setPreselectedProductId(product.id);
+                setIsNewOrderModalOpen(true);
+            };
+            const handleViewInvoice = (invoice) => {
+                setInvoiceModalData({
+                    invoice,
+                    customer: customers.find(c => c.id === invoice.customerId),
+                    service: services.find(s => s.id === invoice.serviceId),
+                    product: products.find(p => p.id === (services.find(s => s.id === invoice.serviceId) || {}).productId)
+                });
+            };
+            
+            const renderContent = () => {
+                if (error) return <div className="p-6 text-center text-red-600 bg-red-50 m-6 rounded-lg">{error}</div>;
+                
+                const { initialSearchTerm } = pageContext;
+                return (
+                    <div className={isFetching ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
+                        {(() => {
+                            switch (activePage) {
+                                case 'Beranda': return <BerandaView customers={customers} services={services} invoices={invoices} products={products} onOpenModal={openModal} onNewOrderClick={() => setIsNewOrderModalOpen(true)} adminProfile={adminProfile} />;
+                                case 'Pelanggan': return <PelangganView customers={customers} onOpenModal={openModal} initialSearchTerm={initialSearchTerm} onCustomerSelect={handleCustomerSelect} />;
+                                case 'Layanan': return <LayananView services={services} customers={customers} products={products} onOpenModal={openModal} onNewServiceClick={() => setIsNewOrderModalOpen(true)} initialSearchTerm={initialSearchTerm} />;
+                                case 'Tagihan': return <TagihanView invoices={invoices} customers={customers} services={services} products={products} onUpdateInvoiceStatus={handleUpdateInvoiceStatus} onRunBillingCheck={handleRunBillingCheck} onViewInvoice={handleViewInvoice} initialSearchTerm={initialSearchTerm} />;
+                                case 'Produk': return <ProdukView products={products} onOpenModal={openModal} onNewServiceForProduct={handleNewServiceForProduct} />;
+                                case 'Notifikasi': return <NotifikasiView notifications={notifications} onNotificationClick={handleNotificationClick} />;
+                                default: return <div className="p-6">Konten untuk {activePage}</div>;
+                            }
+                        })()}
+                    </div>
+                );
+            };
+            
+            const menuItems = [ { id: 'Beranda', label: 'Beranda', icon: <BarChart2 size={20}/> }, { id: 'Pelanggan', label: 'Kelola Pelanggan', icon: <Users size={20}/> }, { id: 'Layanan', label: 'Kelola Layanan', icon: <Layers size={20}/> }, { id: 'Tagihan', label: 'Kelola Tagihan', icon: <FileText size={20}/> }, { id: 'Produk', label: 'Kelola Produk', icon: <ShoppingCart size={20}/> }, { id: 'Notifikasi', label: 'Notifikasi', icon: <Bell size={20}/> }, ];
+
+            if (isLoading) {
+                return (
+                    <div className="flex justify-center items-center h-screen bg-gray-100">
+                        <Spinner className="h-5 w-5 text-blue-600" />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex h-screen bg-gray-50 font-sans text-sm">
+                    {toasts.map(toast => <Toast key={toast.id} {...toast} onDismiss={() => removeToast(toast.id)} />)}
+                    {modalType && (
+                        (modalType === 'customer') ? <CustomerModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('customer', data)} onDelete={() => handleDelete('customer', editingItem)} item={editingItem} /> :
+                        (modalType === 'product') ? <ProductModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('product', data)} onDelete={() => handleDelete('product', editingItem)} item={editingItem} products={products} /> :
+                        (modalType === 'service') ? <ServiceModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('service', data)} onDelete={() => handleDelete('service', editingItem)} item={editingItem} customers={customers} products={products} /> : null
+                    )}
+                    <NewOrderModal submissionStatus={submissionStatus} isOpen={isNewOrderModalOpen} onClose={() => setIsNewOrderModalOpen(false)} onSave={handleSaveOrder} customers={customers} products={products} initialProductId={preselectedProductId} />
+                    <ProfileModal submissionStatus={submissionStatus} isOpen={isProfileModalOpen} onClose={closeModal} onSave={handleSaveProfile} profile={adminProfile} />
+                    <InvoiceModal isOpen={!!invoiceModalData} onClose={closeModal} invoiceData={invoiceModalData} companyProfile={adminProfile} />
+                    <ConfirmationModal submissionStatus={submissionStatus} isOpen={confirmModalState.isOpen} onClose={() => setConfirmModalState({ isOpen: false })} onConfirm={confirmModalState.onConfirm} title={confirmModalState.title}>{confirmModalState.message}</ConfirmationModal>
+
+                    {isSidebarOpen && <div onClick={closeSidebar} className='fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden'></div>}
+                    <aside className={`fixed inset-y-0 left-0 bg-white h-full z-40 transition-all duration-300 ease-in-out transform flex flex-col md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64 shadow-lg' : '-translate-x-full w-64'} md:w-64`}>
+                        <div className="flex items-center border-b h-16 px-4 justify-between"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZSj2-Jr1Xmkmg7GK7l21Z7SQUL5bUsqrefLm6Y7htHU9od4s05SYUzD5cKN4Zy0uf9rs&usqp=CAU" alt="Logo" className="h-8" /><button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 rounded-md hover:bg-gray-100"><X size={24} /></button></div>
+                        <nav className="flex-grow p-4"><ul>{menuItems.map(item => (<li key={item.id} className="mb-2"><a href="#" onClick={(e) => { e.preventDefault(); handleNavigate(item.id); }} className={`flex items-center p-3 rounded-lg text-sm font-medium ${activePage === item.id ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>{item.icon}<span className="ml-3 flex-grow">{item.label}</span>{item.id === 'Notifikasi' && unreadCount > 0 && <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{unreadCount}</span>}</a></li>))}</ul></nav>
+                    </aside>
+                    
+                    <div className="flex-1 flex flex-col overflow-y-auto">
+                        <header className="bg-white p-4 flex justify-between items-center border-b sticky top-0 z-30 h-16">
+                            <button onClick={() => setIsSidebarOpen(true)} className="text-gray-500 md:hidden mr-4"><Menu size={24} /></button>
+                            <div className="flex-1"></div>
+                            <div className="flex items-center space-x-2 md:space-x-4">
+                                <div className="relative"><button onClick={() => setIsNotificationOpen(p => !p)} className="text-gray-500 p-2 rounded-full hover:bg-gray-100"><Bell className="h-6 w-6" />{unreadCount > 0 && <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>}</button><NotificationPopover isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onNotificationClick={handleNotificationClick} onNavigate={handleNavigate}/></div>
+                                <button onClick={() => openModal('profile')} className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100"><Avatar name={adminProfile.name} imageUrl={adminProfile.avatarUrl} size="md" /><div className="hidden md:block text-left"><p className="font-semibold text-sm">{adminProfile.name}</p><p className="text-xs text-gray-500">Administrator</p></div></button>
+                            </div>
+                        </header>
+                        <div className="bg-white border-b p-4 flex items-center gap-2">
+                            <h1 className="text-lg font-bold text-gray-800">{activePage}</h1>
+                            {isFetching && <Spinner className="h-5 w-5 text-blue-600" />}
+                        </div>
+                        <main className="flex-grow">{renderContent()}</main>
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        async function syncServiceStatuses(services, postData, fetchData) {
+          let updated = false;
+          for (const service of services) {
+            const calculatedStatus = getServiceStatus(service);
+            if (service.status !== calculatedStatus) {
+              await postData('SAVE_SERVICE', { ...service, status: calculatedStatus });
+              updated = true;
+            }
+          }
+          // Hanya fetch ulang data jika ada perubahan status
+          if (updated) {
+            await fetchData(false);
+          }
+        }
+
+        // Skeleton Loader Component
+        const Skeleton = ({ height = 20, width = '100%', className = '' }) => (
+            <div className={`bg-gray-200 rounded animate-pulse ${className}`} style={{ height, width }} />
+        );
+
+        // Helper for consistent Indonesian date format
+        function formatDateID(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    </script>
+</body>
+</html>
