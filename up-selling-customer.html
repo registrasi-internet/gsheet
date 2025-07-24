@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Up-Selling Customer 1.7</title>
+    <title>Up-Selling Customer 2.0</title>
     <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Memuat Font Inter dari Google Fonts -->
@@ -101,20 +101,29 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div id="card-today" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
                 <div>
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa Hari Ini</div>
                     <div id="count-today" class="text-3xl font-bold text-sky-600 dark:text-sky-400">0</div>
                 </div>
-                <div class="bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-day fa-lg"></i></div>
+                <!-- [MODIFIED] Ikon disamakan -->
+                <div class="bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-alt fa-lg"></i></div>
+            </div>
+            <div id="card-3days" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
+                <div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa dalam 3 Hari</div>
+                    <div id="count-3days" class="text-3xl font-bold text-teal-500 dark:text-teal-400">0</div>
+                </div>
+                <div class="bg-teal-100 dark:bg-teal-500/20 text-teal-500 dark:text-teal-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-alt fa-lg"></i></div>
             </div>
             <div id="card-7days" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
                 <div>
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa dalam 7 Hari</div>
                     <div id="count-7days" class="text-3xl font-bold text-orange-500 dark:text-orange-400">0</div>
                 </div>
-                <div class="bg-orange-100 dark:bg-orange-500/20 text-orange-500 dark:text-orange-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-week fa-lg"></i></div>
+                <!-- [MODIFIED] Ikon disamakan -->
+                <div class="bg-orange-100 dark:bg-orange-500/20 text-orange-500 dark:text-orange-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-alt fa-lg"></i></div>
             </div>
         </div>
 
@@ -126,8 +135,11 @@
                 </div>
                 <div class="md:col-span-2 flex flex-wrap justify-center md:justify-end gap-2">
                     <button id="show-all-btn" class="filter-btn active flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-list-ul"></i><span>Semua</span></button>
-                    <button id="filter-today-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-day"></i><span>Filter Hari Ini</span></button>
-                    <button id="filter-7days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-week"></i><span>Filter 7 Hari</span></button>
+                    <!-- [MODIFIED] Ikon disamakan -->
+                    <button id="filter-today-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter Hari Ini</span></button>
+                    <button id="filter-3days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter 3 Hari</span></button>
+                    <!-- [MODIFIED] Ikon disamakan -->
+                    <button id="filter-7days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter 7 Hari</span></button>
                 </div>
             </div>
         </div>
@@ -144,6 +156,47 @@
     </div>
 
     <script>
+    // Fungsi untuk menyalin teks ke clipboard
+    window.copyToClipboard = function(text, buttonElement) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Sembunyikan textarea agar tidak terlihat
+        textArea.style.position = "fixed";
+        textArea.style.top = "-9999px";
+        textArea.style.left = "-9999px";
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            // Gunakan execCommand sebagai fallback yang andal
+            document.execCommand('copy');
+            
+            // Beri feedback visual kepada pengguna
+            const originalIconHTML = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+            buttonElement.disabled = true;
+            
+            setTimeout(() => {
+                buttonElement.innerHTML = originalIconHTML;
+                buttonElement.disabled = false;
+            }, 1500);
+
+        } catch (err) {
+            console.error('Gagal menyalin teks: ', err);
+            // Beri feedback error jika gagal
+            const originalIconHTML = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-times text-red-500"></i>';
+            setTimeout(() => {
+                buttonElement.innerHTML = originalIconHTML;
+            }, 2000);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+
     window.updateDropdownColor = function(selectElement) {
         const selectedValue = selectElement.value;
         selectElement.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'bg-gray-200', 'dark:bg-gray-700');
@@ -211,9 +264,22 @@
             paginationControls: document.getElementById('pagination-controls'),
             searchBox: document.getElementById('search-box'),
             sheetSelector: document.getElementById('sheet-selector'),
-            cards: { today: document.getElementById('card-today'), sevenDays: document.getElementById('card-7days') },
-            counts: { today: document.getElementById('count-today'), sevenDays: document.getElementById('count-7days') },
-            buttons: { showAll: document.getElementById('show-all-btn'), filterToday: document.getElementById('filter-today-btn'), filter7Days: document.getElementById('filter-7days-btn') }
+            cards: { 
+                today: document.getElementById('card-today'), 
+                threeDays: document.getElementById('card-3days'),
+                sevenDays: document.getElementById('card-7days') 
+            },
+            counts: { 
+                today: document.getElementById('count-today'),
+                threeDays: document.getElementById('count-3days'),
+                sevenDays: document.getElementById('count-7days')
+            },
+            buttons: { 
+                showAll: document.getElementById('show-all-btn'), 
+                filterToday: document.getElementById('filter-today-btn'), 
+                filter3Days: document.getElementById('filter-3days-btn'),
+                filter7Days: document.getElementById('filter-7days-btn') 
+            }
         };
         
         ui.sheetSelector.dataset.webAppUrl = webAppUrl;
@@ -328,6 +394,7 @@
 
         function updateSummaryCards() {
             ui.counts.today.textContent = filterData(allRowsData, 'today').length;
+            ui.counts.threeDays.textContent = filterData(allRowsData, '3days').length;
             ui.counts.sevenDays.textContent = filterData(allRowsData, '7days').length;
         }
 
@@ -373,6 +440,16 @@
                                     <option value="INVALID NUMBER" ${progressValue === 'INVALID NUMBER' ? 'selected' : ''}>INVALID NUMBER</option>
                                 </select>
                             `;
+                        } else if (col.key === 'contractaccount') {
+                            const idPelanggan = String(rowData[columnIndexes[col.key]] || 'N/A').trim().replace(/^"|"$/g, '');
+                            cell.innerHTML = `
+                                <div class="flex items-center justify-between">
+                                    <span>${idPelanggan}</span>
+                                    <button onclick="window.copyToClipboard('${idPelanggan}', this)" class="ml-4 p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Salin ID Pelanggan">
+                                        <i class="far fa-copy text-gray-500 dark:text-gray-400"></i>
+                                    </button>
+                                </div>
+                            `;
                         } else {
                             cell.textContent = String(rowData[columnIndexes[col.key]] || 'N/A').trim().replace(/^"|"$/g, '');
                         }
@@ -387,7 +464,6 @@
                     actionCell.className = 'px-6 py-4 md:text-center';
 
                     if (phoneNumber) {
-                        // --- [MODIFIED] Template pesan WhatsApp diperbarui ---
                         const messageTemplate = `*Halo ${fullName} pelanggan setia Biznet*\nKami ingin mengingatkan bahwa jatuh tempo pembayaran tagihan Biznet Anda adalah pada:\n\n*Nama: ${fullName}*\n*ID Pelanggan: ${idPelanggan}*\n*Expired Date: ${expiryDate}*.\n\nSaat ini tersedia promo spesial perpanjangan layanan:\nBayar 3 bulan > Gratis 1 bulan\nBayar 6 bulan > Gratis 2 bulan\nBayar 9 bulan > Gratis 3 bulan\nBayar 12 bulan > Gratis 5 bulan\nDengan perpanjangan lebih lama, Anda bisa hemat lebih banyak dan tidak perlu repot bayar bulanan.\n\nPaket 12+5 adalah yang paling hemat—bayar 12 bulan, gratis hampir setengah tahun!\nJika sudah melakukan pembayaran, silakan abaikan pesan ini.\n\nTapi kalau tertarik dengan promo ini, cukup balas pesan ini untuk info lebih lanjut.\nTerima kasih atas kepercayaannya menggunakan Biznet!`;
                         const encodedMessage = encodeURIComponent(messageTemplate);
                         actionCell.innerHTML = `<a href="https://wa.me/${formatPhoneNumber(phoneNumber)}?text=${encodedMessage}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md text-xs shadow-sm transition-all duration-200 transform hover:scale-110 w-full"><i class="fab fa-whatsapp mr-2"></i>Follow Up</a>`;
@@ -414,14 +490,28 @@
             Object.values(ui.buttons).forEach(btn => btn.classList.remove('active'));
             if (activeFilter === 'all') ui.buttons.showAll.classList.add('active');
             if (activeFilter === 'today') ui.buttons.filterToday.classList.add('active');
+            if (activeFilter === '3days') ui.buttons.filter3Days.classList.add('active');
             if (activeFilter === '7days') ui.buttons.filter7Days.classList.add('active');
         }
 
         function filterData(data, filterType) {
-            if (!serverTodayString && (filterType === 'today' || filterType === '7days')) {
+            if (!serverTodayString && (filterType === 'today' || filterType === '3days' || filterType === '7days')) {
                 console.warn("Mencoba filter tanggal sebelum tanggal server diterima.");
                 return [];
             }
+
+            const getDateList = (days) => {
+                const dateList = [];
+                const parts = serverTodayString.split('-').map(Number);
+                const startDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+
+                for (let i = 0; i < days; i++) {
+                    const d = new Date(startDate);
+                    d.setUTCDate(d.getUTCDate() + i);
+                    dateList.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
+                }
+                return dateList;
+            };
 
             if (filterType === 'today') {
                 return data.filter(item => {
@@ -429,16 +519,15 @@
                     return cellDate === serverTodayString;
                 });
             }
+            if (filterType === '3days') {
+                const dateList = getDateList(3);
+                return data.filter(item => {
+                    const cellDate = item.data[columnIndexes.expireddate];
+                    return dateList.includes(cellDate);
+                });
+            }
             if (filterType === '7days') {
-                const dateList = [];
-                const parts = serverTodayString.split('-').map(Number);
-                const startDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-
-                for (let i = 0; i < 7; i++) {
-                    const d = new Date(startDate);
-                    d.setUTCDate(d.getUTCDate() + i);
-                    dateList.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
-                }
+                const dateList = getDateList(7);
                 return data.filter(item => {
                     const cellDate = item.data[columnIndexes.expireddate];
                     return dateList.includes(cellDate);
@@ -471,6 +560,7 @@
         }));
         
         ui.cards.today.addEventListener('click', () => { activeFilter = 'today'; currentPage = 1; updateDisplay(); });
+        ui.cards.threeDays.addEventListener('click', () => { activeFilter = '3days'; currentPage = 1; updateDisplay(); });
         ui.cards.sevenDays.addEventListener('click', () => { activeFilter = '7days'; currentPage = 1; updateDisplay(); });
         
         ui.paginationControls.addEventListener('click', (e) => {
