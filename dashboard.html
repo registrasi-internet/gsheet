@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NH BIRU - Panel Admin</title>
+    
+    <!-- 
+    REKOMENDASI STRUKTUR GOOGLE SHEET UNTUK FITUR PENGATURAN:
+    
+    Sheet "Profile" harus memiliki kolom berikut:
+    | id | name | email | role | logoUrl | password | avatarUrl | createdAt | updatedAt |
+    
+    PERBAIKAN GOOGLE APPS SCRIPT YANG DIPERLUKAN:
+    
+    1. Tambahkan enkripsi password di Google Apps Script:
+    function hashPassword(password) {
+      return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password));
+    }
+    
+    2. Update fungsi saveData untuk Profile:
+    case 'SAVE_PROFILE': 
+      if (data.password) {
+        data.password = hashPassword(data.password);
+      }
+      data.updatedAt = new Date().toISOString();
+      saveData(profileSheet, data); 
+      break;
+    
+    3. Pastikan semua kolom Profile tersedia di sheet
+    -->
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+          tailwind.config = {
+              theme: {
+                  extend: {
+                      colors: {
+                          primary: {
+                              50: '#f0f8ff',
+                              100: '#e0f2fe',
+                              200: '#bae6fd',
+                              300: '#7dd3fc',
+                              400: '#38bdf8',
+                              500: '#007aff',
+                              600: '#005ecb', // biru gelap untuk hover
+                              700: '#0369a1',
+                              800: '#075985',
+                              900: '#0c4a6e',
+                          },
+                          'primary-hover': '#005ecb',
+                      }
+                  }
+              }
+          }
+      </script>
+    
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- jsPDF & html2canvas for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; font-size: 14px; }
+        @keyframes fade-in-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-down { animation: fade-in-down 0.3s ease-out forwards; }
+        .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+          /* Custom fresh theme styles */
+          .bg-fresh-gray { background-color: #f8fafc; }
+          .bg-fresh-white { background-color: #ffffff; }
+          .border-fresh { border-color: #e2e8f0; }
+          .text-fresh-gray { color: #64748b; }
+          .hover-fresh:hover { background-color: #f1f5f9; }
+          
+          /* Animasi denyut untuk notifikasi */
+          .animate-pulse-red {
+            animation: pulseRed 2s infinite;
+          }
+          
+          @keyframes pulseRed {
+            0% {
+              box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+              transform: scale(1);
+            }
+            50% {
+              box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+              transform: scale(1.1);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+              transform: scale(1);
+            }
+          }
+          
+          /* Animasi bounce untuk notifikasi */
+          .animate-bounce-red {
+            animation: bounceRed 1s infinite;
+          }
+          
+          @keyframes bounceRed {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0) scale(1);
+            }
+            40% {
+              transform: translateY(-3px) scale(1.1);
+            }
+            60% {
+              transform: translateY(-2px) scale(1.05);
+            }
+          }
+          
+          /* Animasi shake untuk notifikasi penting */
+          .animate-shake-red {
+            animation: shakeRed 0.5s ease-in-out infinite;
+          }
+          
+          @keyframes shakeRed {
+            0%, 100% {
+              transform: translateX(0) scale(1);
+            }
+            25% {
+              transform: translateX(-2px) scale(1.05);
+            }
+            75% {
+              transform: translateX(2px) scale(1.05);
+            }
+          }
+
+        /* Print-specific styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #invoice-printable-area, #invoice-printable-area * {
+                visibility: visible;
+            }
+            #invoice-printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                min-width: 0;
+                max-width: 100vw;
+                background: #fff !important;
+                color: #222 !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                font-size: 13px !important;
+            }
+            #invoice-printable-area table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            #invoice-printable-area th, #invoice-printable-area td {
+                padding: 8px 6px !important;
+                font-size: 13px !important;
+                border: 1px solid #e5e7eb !important;
+            }
+            #invoice-printable-area th {
+                background: #f3f4f6 !important;
+                color: #222 !important;
+                font-weight: bold !important;
+            }
+            #invoice-printable-area .no-print {
+                display: none !important;
+            }
+        }
+        @media (max-width: 768px) {
+          header .max-w-md { max-width: 100% !important; }
+          header input[type="text"] { font-size: 15px !important; }
+        }
+    </style>
+    
+</head>
+<body class="bg-fresh-gray">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- GANTI DENGAN URL WEB APP ANDA DARI GOOGLE APPS SCRIPT ---
+        const SCRIPT_URL = localStorage.getItem('hpanel_script_url') || 'https://script.google.com/macros/s/AKfycbzeDHDOGD3Gybt6mux8cPlOYnBfHl7pSYas5WEoJdkpVPjaNr_i7mKuDdaZgSsgM2mr/exec';
+
+        // --- ICONS ---
+        const icons = {
+            BarChart2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
+            Users: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+            FileText: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>,
+            X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+            Search: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+            ChevronLeft: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="15 18 9 12 15 6" /></svg>,
+            Edit: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
+            PlusCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>,
+            Layers: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>,
+            CheckCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
+            Menu: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
+            AlertTriangle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
+            Bell: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>,
+            ShoppingCart: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>,
+            Bot: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 8V4H8" /><rect x="4" y="12" width="16" height="8" rx="2" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="M12 12v.01" /></svg>,
+            ChevronRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="9 18 15 12 9 6" /></svg>,
+            ChevronsLeft: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>,
+            ChevronsRight: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>,
+            Camera: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>,
+            Home: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
+            Download: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>,
+            Spinner: ({ className, ...props }) => {
+                const finalClassName = ['animate-spin', className].filter(Boolean).join(' ');
+                return (
+                    <svg className={finalClassName} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" {...props}>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                );
+            },
+            Circle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /></svg>,
+            Clock: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></svg>,
+            Info: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-11h-2v6h2v-6zm0 8h-2v2h2v-2z" /></svg>,
+            Server: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,
+            Settings: (props) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.14.31.22.65.22 1v.09A1.65 1.65 0 0 0 21 12c0 .35-.08.69-.22 1z" />
+                </svg>
+            ),
+            LogOut: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
+        };
+
+        const { useState, useMemo, useEffect, useCallback, useRef } = React;
+        const { BarChart2, Users, FileText, X, Search, ChevronLeft, Edit, PlusCircle, Layers, CheckCircle, Menu, AlertTriangle, Bell, ShoppingCart, Bot, ChevronRight, ChevronsLeft, ChevronsRight, Camera, Home, Spinner, Download, Circle, Clock, Info, Server, Settings, LogOut } = icons;
+
+        // --- HELPER FUNCTIONS ---
+        const formatRelativeTime = (timestamp) => {
+            if (!timestamp) return '';
+            const now = new Date();
+            const past = new Date(timestamp);
+            const seconds = Math.floor((now - past) / 1000);
+
+            if (seconds < 10) return 'baru saja';
+            if (seconds < 60) return `${seconds} detik lalu`;
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} menit lalu`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} jam lalu`;
+
+            const days = Math.floor(hours / 24);
+            if (days === 1) return 'kemarin';
+            if (days < 7) return `${days} hari lalu`;
+
+            return past.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        };
+
+        // --- UI COMPONENTS ---
+        const Avatar = ({ name, imageUrl, size = 'md', className = '' }) => {
+            const getInitials = (name) => {
+                if (!name) return '?';
+                const names = name.trim().split(' ');
+                if (names.length > 1) return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+                return name.substring(0, 2).toUpperCase();
+            };
+            const getBackgroundColor = (name, imageUrl) => {
+                // Jika tidak ada gambar, selalu gunakan warna abu-abu
+                if (!imageUrl || imageUrl.trim() === '' || imageUrl === 'null' || imageUrl === null) {
+                    return 'bg-gray-500';
+                }
+                
+                // Jika ada gambar, gunakan warna berdasarkan nama
+                if (!name) return 'bg-primary-500';
+                let hash = 0;
+                for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                const colors = ['bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'];
+                return colors[Math.abs(hash) % colors.length];
+            };
+            const sizeClasses = { 'sm': 'w-8 h-8 text-xs', 'md': 'w-10 h-10 text-sm', 'lg': 'w-16 h-16 text-xl' };
+            if (imageUrl) return <img src={imageUrl} alt={name} className={`rounded-full object-cover flex-shrink-0 ${sizeClasses[size]} ${className}`} />;
+            return <div className={`rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${getBackgroundColor(name, imageUrl)} ${sizeClasses[size]} ${className}`}>{getInitials(name)}</div>;
+        };
+        const StatusBadge = ({ status, size = 'sm' }) => {
+            const baseClasses = "font-medium rounded-full inline-flex items-center gap-1";
+            const sizeClasses = { sm: "px-2.5 py-0.5 text-xs", lg: "px-4 py-1 text-sm" };
+            let colorClasses = "";
+            let icon = null;
+            switch (status) {
+                case 'Lunas':
+                    colorClasses = "bg-green-100 text-green-700";
+                    icon = <CheckCircle className="w-3 h-3 mr-1 text-green-500" />;
+                    break;
+                case 'Aktif':
+                    colorClasses = "bg-primary-100 text-primary-700";
+                    icon = <CheckCircle className="w-3 h-3 mr-1 text-primary-500" />;
+                    break;
+                case 'Tersedia':
+                    colorClasses = "bg-primary-100 text-primary-700";
+                    icon = <CheckCircle className="w-3 h-3 mr-1 text-primary-500" />;
+                    break;
+                case 'Akan Berakhir':
+                case 'Pending':
+                    colorClasses = "bg-yellow-100 text-yellow-700";
+                    icon = <Clock className="w-3 h-3 mr-1 text-yellow-500" />;
+                    break;
+                case 'Jatuh Tempo':
+                case 'Suspended':
+                case 'Diarsipkan':
+                case 'Belum Dibayar':
+                    colorClasses = "bg-red-100 text-red-700";
+                    icon = <AlertTriangle className="w-3 h-3 mr-1 text-red-500" />;
+                    break;
+                default:
+                    colorClasses = "bg-primary-100 text-primary-700";
+                    icon = <Circle className="w-3 h-3 mr-1 text-primary-500" />;
+            }
+            return <span className={`${baseClasses} ${sizeClasses[size]} ${colorClasses}`}>{icon}{status}</span>;
+        };
+        const Toast = ({ message, type, onDismiss }) => {
+            const baseClasses = "fixed top-5 right-5 flex items-center p-4 rounded-lg shadow-lg text-white z-[100] animate-fade-in-down min-w-[220px]";
+            const typeClasses = { success: 'bg-green-500', info: 'bg-primary-500', error: 'bg-red-500' };
+            const iconMap = {
+                success: <CheckCircle className="w-5 h-5 mr-2 text-white" />,
+                info: <Info className="w-5 h-5 mr-2 text-white" />,
+                error: <AlertTriangle className="w-5 h-5 mr-2 text-white" />,
+            };
+            useEffect(() => { const timer = setTimeout(onDismiss, 3000); return () => clearTimeout(timer); }, [onDismiss]);
+            return (
+                <div className={`${baseClasses} ${typeClasses[type]}`}>{iconMap[type]}<span>{message}</span><button onClick={onDismiss} className="ml-4"><X size={18} /></button></div>
+            );
+        };
+        const SearchBar = ({ searchTerm, setSearchTerm, placeholder }) => (
+            <div className='relative flex-grow'>
+                <input type='text' placeholder={placeholder} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className='border border-gray-300 rounded-md pl-10 pr-4 py-2 w-full focus:ring-primary-500 focus:border-primary-500 text-sm' />
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            </div>
+        );
+        const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+            if (totalPages <= 1) return null;
+            return (
+                <div className="flex justify-between items-center mt-4">
+                    <button onClick={() => onPageChange(1)} disabled={currentPage === 1} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronsLeft size={20} /></button>
+                    <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronLeft size={20} /></button>
+                    <span className="text-sm text-gray-700">Halaman {currentPage} dari {totalPages}</span>
+                    <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronRight size={20} /></button>
+                    <button onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} className="p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"><ChevronsRight size={20} /></button>
+                </div>
+            );
+        };
+        const BarChart = ({ data, dataKey, labelKey }) => {
+            const [tooltip, setTooltip] = useState(null);
+            if (!data || data.length === 0) return <div className="h-64 flex items-center justify-center text-gray-500">Tidak ada data.</div>;
+            const maxValue = Math.max(...data.map(d => d[dataKey]));
+            const yAxisLabels = Array.from({ length: 5 }, (_, i) => {
+                const value = (maxValue / 4) * i;
+                return value >= 1000000 ? `${(value / 1000000).toFixed(1)}Jt` : `${Math.round(value / 1000)}K`;
+            }).reverse();
+            return (
+                <div className="h-64 w-full relative pt-4">
+                    <div className="absolute top-4 left-0 h-[calc(100%-2rem)] w-full flex flex-col justify-between">
+                        {yAxisLabels.map((label, i) => (<div key={i} className="flex items-center w-full"><span className="text-xs text-gray-400 pr-2 w-12 text-right">{label}</span><div className="flex-1 border-t border-dashed border-gray-200"></div></div>))}
+                    </div>
+                    <div className="absolute top-4 left-12 h-[calc(100%-2rem)] w-[calc(100%-3rem)] flex justify-around items-end gap-2 px-2">
+                        {data.map((item, index) => (<div key={index} className="flex flex-col items-center flex-1 h-full justify-end group" onMouseEnter={() => setTooltip({ ...item, index })} onMouseLeave={() => setTooltip(null)}><div className="w-full bg-primary-500 group-hover:bg-primary-600 rounded-t-md" style={{ height: `${maxValue > 0 ? (item[dataKey] / maxValue) * 100 : 0}%`, transition: 'height 0.3s ease-in-out' }}></div></div>))}
+                    </div>
+                    <div className="absolute bottom-0 left-12 h-8 w-[calc(100%-3rem)] flex justify-around items-end gap-2 px-2">
+                        {data.map((item, index) => (<div key={index} className="text-xs font-medium text-gray-600 mt-2 flex-1 text-center"><span className="hidden sm:inline">{item[labelKey]}</span><span className="sm:hidden">{item[labelKey].charAt(0)}</span></div>))}
+                    </div>
+                    {tooltip && (<div className="absolute bg-gray-800 text-white text-xs rounded-md p-2 shadow-lg z-10" style={{ left: `${(tooltip.index / data.length) * 100 + (1 / data.length / 2) * 100}%`, bottom: '100%', transform: 'translate(-50%, -10px)', transition: 'opacity 0.2s' }}>Rp {tooltip[dataKey].toLocaleString('id-ID')}</div>)}
+                </div>
+            );
+        };
+        const DonutChart = ({ data }) => {
+            if (!data || data.length === 0) return <div className="h-full flex items-center justify-center text-gray-500">Tidak ada data.</div>;
+            const total = data.reduce((acc, item) => acc + item.value, 0);
+            let cumulativePercent = 0;
+            const segments = data.map(item => { const percent = total > 0 ? (item.value / total) * 100 : 0; const startAngle = cumulativePercent; cumulativePercent += percent; return { ...item, percent, startAngle }; });
+            const radius = 15.9154943092;
+            return (
+                <div className="flex flex-col items-center justify-center h-full gap-6">
+                    <div className="relative w-36 h-36">
+                        <svg className="w-full h-full" viewBox="0 0 36 36">{segments.map((segment, index) => (<circle key={index} cx="18" cy="18" r={radius} fill="transparent" stroke={segment.color} strokeWidth="4" strokeDasharray={`${segment.percent} ${100 - segment.percent}`} strokeDashoffset={-segment.startAngle} transform="rotate(-90 18 18)" />))}</svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold text-gray-800">{total}</span><span className="text-sm text-gray-500">Layanan</span></div>
+                    </div>
+                    <div className="w-full"><ul className="space-y-2">{data.map(item => (<li key={item.name} className="flex justify-between items-center text-sm"><div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span><span className="text-gray-600">{item.name}</span></div><span className="font-semibold text-gray-800">{item.value}</span></li>))}</ul></div>
+                </div>
+            );
+        };
+        
+        const getServiceStatus = (service) => {
+            if (service.status === 'Suspended') return 'Suspended';
+            if (service.status === 'Pending') return 'Pending';
+            const now = new Date();
+            const expiry = new Date(service.expiryDate);
+            const daysLeft = (expiry - now) / (1000 * 60 * 60 * 24);
+            if (daysLeft < 0) return 'Jatuh Tempo';
+            if (daysLeft <= 30) return 'Akan Berakhir';
+            return 'Aktif';
+        };
+
+        const NotificationIcon = ({ iconName }) => {
+            switch (iconName) {
+                case 'CheckCircle': return <CheckCircle className="text-green-500"/>;
+                case 'AlertTriangle': return <AlertTriangle className="text-red-500"/>;
+                case 'Users': return <Users className="text-primary-500"/>;
+                case 'FileText': return <FileText className="text-yellow-500"/>;
+                case 'Layers': return <Layers className="text-green-500"/>;
+                case 'Server': return <Server className="text-green-500"/>;
+                default: return <Bell className="text-gray-500"/>;
+            }
+        };
+
+        const EmptyState = ({ icon, title, description, children }) => (
+            <div className="text-center py-12 px-6">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 text-gray-400">
+                    {icon}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-gray-800">{title}</h3>
+                <p className="mt-2 text-sm text-gray-500">{description}</p>
+                {children && <div className="mt-6">{children}</div>}
+            </div>
+        );
+
+        // --- MODALS ---
+        const Modal = ({ isOpen, onClose, children, title, size = 'md' }) => {
+            if (!isOpen) return null;
+            const sizeClasses = { 'md': 'max-w-md', 'lg': 'max-w-lg', 'xl': 'max-w-xl', '3xl': 'max-w-3xl' };
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+                    <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} transform animate-fade-in-up max-h-[90vh] flex flex-col`} onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-5 border-b sticky top-0 bg-white z-10 no-print"><h2 className="text-lg font-semibold text-gray-800">{title}</h2><button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X /></button></div>
+                        <div className="overflow-y-auto">{children}</div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const CrudModal = ({ isOpen, onClose, onSave, onDelete, children, title, isEdit, saveButtonText = "Simpan", submissionStatus, item }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title={title}>
+                <form onSubmit={(e) => { e.preventDefault(); onSave(); }}>
+                    <div className="p-6 space-y-4">{children}</div>
+                    <div className="p-5 bg-gray-50 rounded-b-xl flex justify-between items-center">
+                        <div>
+                            {isEdit && onDelete && (
+                                <button type="button" onClick={onDelete} disabled={submissionStatus.type !== null} className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:bg-red-400 flex items-center">
+                                    {submissionStatus.type === 'delete' && <Spinner className="h-5 w-5 mr-2"/>}
+                                    Hapus
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-3">
+                            <button type="button" onClick={onClose} disabled={submissionStatus.type !== null} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 disabled:opacity-50">Batal</button>
+                            <button type="submit" disabled={submissionStatus.type !== null} className="px-4 py-2 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 disabled:bg-primary-600 flex items-center justify-center min-w-[100px]">
+                                {submissionStatus.type === 'save' ? <Spinner className="h-5 w-5"/> : saveButtonText}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </Modal>
+        );
+
+        const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children, submissionStatus }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
+                <div className="p-6 text-center">
+                    <AlertTriangle className="mx-auto h-12 w-12 text-red-400" />
+                    <h3 className="mt-2 text-lg font-medium text-gray-900">{title}</h3>
+                    <div className="mt-2 text-sm text-gray-500">{children}</div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-xl">
+                    <button type="button" disabled={submissionStatus.type !== null} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm disabled:bg-red-400" onClick={onConfirm}>
+                        {submissionStatus.type === 'confirm' || submissionStatus.type === 'delete' ? <Spinner className="h-5 w-5"/> : "Ya, Lanjutkan"}
+                    </button>
+                    <button type="button" disabled={submissionStatus.type !== null} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-100 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50" onClick={onClose}>Batal</button>
+                </div>
+            </Modal>
+        );
+
+        const CustomerModal = ({ isOpen, onClose, onSave, onDelete, item, submissionStatus }) => {
+            const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
+            useEffect(() => { setFormData(item || { name: '', email: '', whatsapp: '' }); }, [item, isOpen]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave(formData)} onDelete={onDelete} title={item ? 'Edit Pelanggan' : 'Tambah Pelanggan'} isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">No. WhatsApp</label><input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                </CrudModal>
+            );
+        };
+        const ProductModal = ({ isOpen, onClose, onSave, onDelete, item, submissionStatus, products }) => {
+            const [formData, setFormData] = useState({ name: '', type: '', price: 0, cycle: 'Tahunan', status: 'Tersedia' });
+            const [isCustomType, setIsCustomType] = useState(false);
+
+            // Ambil tipe unik dari produk yang sudah ada
+            const typeOptions = Array.from(new Set(products.map(p => p.type)));
+
+            useEffect(() => {
+                if (item) {
+                    setFormData(item);
+                    setIsCustomType(item.type && !typeOptions.includes(item.type));
+                } else {
+                    setFormData({ name: '', type: '', price: 0, cycle: 'Tahunan', status: 'Tersedia' });
+                    setIsCustomType(false);
+                }
+            }, [item, isOpen]);
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) || 0 : value }));
+            };
+
+            const handleTypeChange = (e) => {
+                if (e.target.value === '__custom__') {
+                    setIsCustomType(true);
+                    setFormData(prev => ({ ...prev, type: '' }));
+                } else {
+                    setIsCustomType(false);
+                    setFormData(prev => ({ ...prev, type: e.target.value }));
+                }
+            };
+
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave(formData)} onDelete={onDelete} item={item} title={item ? 'Edit Produk' : 'Tambah Produk'} isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Nama Produk</label>
+                        <input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Tipe</label>
+                        <select name="type" value={isCustomType ? '__custom__' : (formData.type || '')} onChange={handleTypeChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">
+                            <option value="">-- Pilih Tipe --</option>
+                            {typeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+                            <option value="__custom__">+ Tipe Baru...</option>
+                        </select>
+                        {isCustomType && (
+                            <input
+                                type="text"
+                                name="type"
+                                value={formData.type || ''}
+                                onChange={handleChange}
+                                placeholder="Tulis tipe baru"
+                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-2"
+                                required
+                            />
+                        )}
+                    </div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Harga (Rp)</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Siklus</label><select name="cycle" value={formData.cycle} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Tahunan</option><option>Bulanan</option><option>Sekali Bayar</option></select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Status</label><select name="status" value={formData.status} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Tersedia</option><option>Diarsipkan</option></select></div>
+                </CrudModal>
+            );
+        };
+        const ServiceModal = ({ isOpen, onClose, onSave, onDelete, item, customers, products, submissionStatus }) => {
+            const [formData, setFormData] = useState({ customerId: '', productId: '', name: '', price: 0, expiryDate: '', status: 'Aktif' });
+            useEffect(() => { if (item) { setFormData({ ...item, expiryDate: new Date(item.expiryDate).toISOString().split('T')[0] }); } else { setFormData({ customerId: '', productId: '', name: '', price: 0, expiryDate: '', status: 'Aktif' }); } }, [item, isOpen]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            useEffect(() => { if(formData.productId) { const product = products.find(p => p.id == formData.productId); if(product) { setFormData(prev => ({...prev, price: product.price, type: product.type})); } } }, [formData.productId, products]);
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={() => onSave({...formData, expiryDate: new Date(formData.expiryDate)})} onDelete={onDelete} title="Kelola Layanan" isEdit={!!item} submissionStatus={submissionStatus}>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Pelanggan</label><select name="customerId" value={formData.customerId} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">{customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.customerId})</option>)}</select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Produk</label><select name="productId" value={formData.productId} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white">{products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}</select></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Domain</label><input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Harga (Rp)</label><input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Tanggal Berakhir</label><input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Status</label><select name="status" value={formData.status} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5 bg-white"><option>Aktif</option><option>Suspended</option><option>Pending</option></select></div>
+                </CrudModal>
+            );
+        };
+        const NewOrderModal = ({ isOpen, onClose, onSave, customers, products, submissionStatus, initialProductId }) => {
+            const [formData, setFormData] = useState({ customerId: '', productId: '', domain: '', price: 0, expiryDate: '' });
+            const selectedProduct = useMemo(() => products.find(p => p.id == formData.productId), [products, formData.productId]);
+            
+            useEffect(() => {
+                if (isOpen) {
+                    setFormData({
+                        customerId: '',
+                        productId: initialProductId || '',
+                        domain: '',
+                        price: 0,
+                        expiryDate: ''
+                    });
+                }
+            }, [isOpen, initialProductId]);
+
+            useEffect(() => { if (selectedProduct) { const today = new Date(); const newExpiryDate = new Date(today); if (selectedProduct.cycle === 'Tahunan') newExpiryDate.setFullYear(today.getFullYear() + 1); else if (selectedProduct.cycle === 'Bulanan') newExpiryDate.setMonth(today.getMonth() + 1); setFormData(p => ({ ...p, price: selectedProduct.price, expiryDate: newExpiryDate.toISOString().split('T')[0] })); } else { setFormData(p => ({ ...p, price: 0, expiryDate: '' })); } }, [selectedProduct]);
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            const handleSave = () => { if (!formData.customerId || !formData.productId || !formData.domain) { return; } onSave({ ...formData, expiryDate: new Date(formData.expiryDate) }); };
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={handleSave} title="Buat Layanan Baru" saveButtonText="Simpan Layanan" submissionStatus={submissionStatus}>
+                    <label className="block text-sm font-medium text-gray-700">Pilih Pelanggan</label><select name="customerId" value={formData.customerId} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg bg-white"><option value="">-- Pilih Pelanggan --</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.customerId})</option>)}</select>
+                    <label className="block text-sm font-medium text-gray-700">Pilih Produk</label><select name="productId" value={formData.productId} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg bg-white"><option value="">-- Pilih Produk --</option>{products.filter(p => p.status === 'Tersedia').map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}</select>
+                    {selectedProduct && <div className='bg-gray-50 p-4 rounded-lg my-4 space-y-2 text-sm'><p><span className='font-semibold'>Harga:</span> Rp {Number(selectedProduct.price).toLocaleString('id-ID')}</p><p><span className='font-semibold'>Siklus:</span> {selectedProduct.cycle}</p></div>}
+                    <label className="block text-sm font-medium text-gray-700">Nama Domain</label><input type="text" name="domain" value={formData.domain} onChange={handleChange} placeholder="contohdomain.com" className="w-full border border-gray-300 rounded-lg p-2.5" />
+                    <label className="block text-sm font-medium text-gray-700">Tanggal Berakhir</label><input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg p-2.5" />
+                </CrudModal>
+            );
+        };
+        const ProfileModal = ({ isOpen, onClose, onSave, profile, submissionStatus }) => {
+            const [formData, setFormData] = useState({ name: '', email: '', avatarUrl: null });
+            const [imagePreview, setImagePreview] = useState(null);
+            const fileInputRef = useRef(null);
+            useEffect(() => { if (isOpen) { setFormData(profile || { name: '', email: '', avatarUrl: null }); setImagePreview(profile.avatarUrl); } }, [profile, isOpen]);
+            const handleImageChange = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setImagePreview(reader.result); reader.readAsDataURL(file); } };
+            const handleSave = () => onSave({ ...formData, avatarUrl: imagePreview });
+            return (
+                <CrudModal isOpen={isOpen} onClose={onClose} onSave={handleSave} title="Edit Profil" saveButtonText="Simpan Perubahan" submissionStatus={submissionStatus}>
+                    <div className="flex flex-col items-center mb-4"><div className="relative group"><Avatar name={formData.name} imageUrl={imagePreview} size="lg" /><button type="button" onClick={() => fileInputRef.current.click()} className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center rounded-full"><Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" /></button><input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" /></div></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Nama Lengkap</label><input type="text" name="name" value={formData.name} onChange={(e) => setFormData(p => ({...p, name: e.target.value}))} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div><label className="block text-sm font-medium text-gray-600 mb-1">Email</label><input type="email" name="email" value={formData.email} onChange={(e) => setFormData(p => ({...p, email: e.target.value}))} className="w-full border border-gray-300 rounded-lg p-2.5" required /></div>
+                    <div className="border-t pt-4 mt-4"><h3 className="font-semibold text-gray-700 mb-2">Ubah Kata Sandi</h3><div><label className="block text-sm font-medium text-gray-600 mb-1">Kata Sandi Lama</label><input type="password" name="old_password" placeholder="••••••••" className="w-full border border-gray-300 rounded-lg p-2.5" /></div><div><label className="block text-sm font-medium text-gray-600 mb-1">Kata Sandi Baru</label><input type="password" name="new_password" placeholder="••••••••" className="w-full border border-gray-300 rounded-lg p-2.5" /></div></div>
+                </CrudModal>
+            );
+        };
+        const NotificationPopover = ({ isOpen, onClose, notifications, onNotificationClick, onNavigate }) => {
+            const popoverRef = useRef(null);
+            useEffect(() => { const handleClickOutside = (event) => { if (popoverRef.current && !popoverRef.current.contains(event.target)) onClose(); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen, onClose]);
+            if (!isOpen) return null;
+            const latestNotifications = notifications.slice(0, 9);
+            return (
+                <div
+                  ref={popoverRef}
+                  className={`
+                    fixed
+                    top-20
+                    left-1
+                    -translate-x-1/2
+                    w-[95vw]
+                    max-w-xs
+                    sm:absolute sm:top-16 sm:right-2 sm:left-auto sm:translate-x-0 sm:w-[350px] sm:max-w-sm
+                    bg-white rounded-lg shadow-xl border z-50 animate-fade-in-down
+                    p-2
+                  `}
+                >
+                                         <div className="flex justify-between items-center p-3 border-b"><h4 className="font-semibold">Notifikasi</h4><button onClick={() => onNotificationClick({ id: 'all' })} className="text-sm text-primary-600">Tandai semua dibaca</button></div>
+                     <div className="max-h-96 overflow-y-auto">{latestNotifications.map(notif => (<button key={notif.id} onClick={() => onNotificationClick(notif)} className={`w-full text-left flex items-start p-3 gap-3 border-b ${!notif.read ? 'bg-primary-50' : 'hover:bg-gray-50'}`}><div className="flex-shrink-0 mt-1"><NotificationIcon iconName={notif.iconName} /></div><div className="flex-grow"><p className="text-sm">{notif.text}</p><p className="text-xs text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p></div>{!notif.read && <div className="w-2.5 h-2.5 bg-primary-500 rounded-full mt-1 flex-shrink-0"></div>}</button>))}</div>
+                     <div className="p-2 text-center bg-gray-50 rounded-b-lg"><button onClick={() => onNavigate('Notifikasi')} className="text-sm font-medium text-primary-600 w-full">Lihat Semua</button></div>
+                </div>
+            );
+        };
+        const InvoiceModal = ({ isOpen, onClose, invoiceData, companyProfile }) => {
+            const [isDownloading, setIsDownloading] = useState(false);
+            if (!isOpen || !invoiceData) return null;
+            const { invoice, customer, service, product } = invoiceData;
+            
+            const handleDownloadPdf = async () => {
+                setIsDownloading(true);
+                const { jsPDF } = window.jspdf;
+                const invoiceElement = document.getElementById('invoice-printable-area');
+                
+                try {
+                    const canvas = await html2canvas(invoiceElement, {
+                        scale: 2, // Higher scale for better quality
+                        useCORS: true,
+                        logging: false,
+                    });
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`Invoice-${invoice.id}.pdf`);
+                } catch (error) {
+                    console.error("Gagal membuat PDF:", error);
+                } finally {
+                    setIsDownloading(false);
+                }
+            };
+
+            const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const formatCurrency = (amount) => `Rp ${Number(amount).toLocaleString('id-ID')}`;
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title={`Invoice #${invoice.id}`} size="3xl">
+                    <div id="invoice-printable-area" className="p-4 sm:p-8 bg-white text-gray-800">
+                        <div className="grid grid-cols-2 items-start mb-8">
+                            <div>
+                                <img 
+                                    src={companyProfile.logoUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU"} 
+                                    alt="Company Logo" 
+                                    className="h-10 mb-4 object-contain"
+                                    onError={(e) => {
+                                        e.target.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU";
+                                    }}
+                                />
+                                <h2 className="font-bold text-gray-800">{companyProfile.name || 'Company Name'}</h2>
+                                <p className="text-sm text-gray-600">{companyProfile.email || 'company@example.com'}</p>
+                            </div>
+                            <div className="text-right">
+                                <h1 className="text-3xl font-bold text-gray-800 uppercase">Invoice</h1>
+                                <p className="text-sm text-gray-500 mt-1"># {invoice.id}</p>
+                                <div className="mt-4"><StatusBadge status={invoice.status} size="lg" /></div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <p className="text-sm font-semibold text-gray-500 uppercase">Ditagihkan Kepada</p>
+                                <p className="font-bold text-gray-800 mt-1">{customer.name}</p>
+                                <p className="text-sm text-gray-600">{customer.email}</p>
+                                <p className="text-sm text-gray-600">{customer.whatsapp}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-semibold text-gray-500 uppercase">Tanggal Invoice</p>
+                                <p className="font-medium text-gray-800 mt-1">{formatDate(new Date())}</p>
+                                <p className="text-sm font-semibold text-gray-500 uppercase mt-4">Jatuh Tempo</p>
+                                <p className="font-medium text-gray-800 mt-1">{formatDate(invoice.dueDate)}</p>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="py-3 px-4 text-left font-semibold text-gray-600 uppercase whitespace-nowrap">Deskripsi</th>
+                                        <th className="py-3 px-4 text-center font-semibold text-gray-600 uppercase whitespace-nowrap">Kuantitas</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-gray-600 uppercase whitespace-nowrap">Harga</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-gray-600 uppercase whitespace-nowrap">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    <tr>
+                                        <td className="py-3 px-4 whitespace-nowrap">
+                                            <p className="font-medium">{product.name} - {service.name}</p>
+                                            <p className="text-xs text-gray-500">Siklus: {product.cycle}</p>
+                                        </td>
+                                        <td className="py-3 px-4 text-center whitespace-nowrap">1</td>
+                                        <td className="py-3 px-4 text-right whitespace-nowrap">{formatCurrency(invoice.amount)}</td>
+                                        <td className="py-3 px-4 text-right font-medium whitespace-nowrap">{formatCurrency(invoice.amount)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex justify-end mt-8">
+                            <div className="w-full max-w-xs">
+                                <div className="flex justify-between text-gray-600">
+                                    <p>Subtotal</p>
+                                    <p>{formatCurrency(invoice.amount)}</p>
+                                </div>
+                                <div className="flex justify-between text-gray-600 mt-2">
+                                    <p>Pajak (0%)</p>
+                                    <p>{formatCurrency(0)}</p>
+                                </div>
+                                <div className="border-t my-2"></div>
+                                <div className="flex justify-between font-bold text-lg text-gray-800">
+                                    <p>Total Tagihan</p>
+                                    <p>{formatCurrency(invoice.amount)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t mt-8 pt-6 text-sm text-gray-600">
+                            <h3 className="font-semibold text-gray-800 mb-2">Instruksi Pembayaran</h3>
+                            <p>Silakan lakukan pembayaran ke rekening berikut:</p>
+                            <p className="font-medium mt-1">Bank BCA - 1234567890 a/n {companyProfile.name}</p>
+                            <p className="mt-4">Terima kasih atas kepercayaan Anda.</p>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-b-xl flex justify-end items-center gap-3 no-print">
+                        <button
+  onClick={handleDownloadPdf}
+  disabled={isDownloading}
+  className="px-4 py-2 min-w-[100px] bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 flex items-center justify-center disabled:opacity-50"
+>
+  {isDownloading
+    ? <Spinner className="h-5 w-5" />
+    : 'Download'
+  }
+</button>
+                        <button onClick={onClose} className="px-4 py-2 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600">Tutup</button>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // --- VIEWS / PAGES ---
+        const BerandaView = ({ customers, services, invoices, products, onOpenModal, onNewOrderClick, adminProfile }) => {
+            const [dateRange, setDateRange] = useState('this_month');
+            const [customRange, setCustomRange] = useState({ start: '', end: '' });
+            const [expiringCurrentPage, setExpiringCurrentPage] = useState(1);
+            const EXPIRING_ITEMS_PER_PAGE = 5;
+            const { startDate, endDate } = useMemo(() => { const now = new Date(); let start = new Date(); let end = new Date(); switch (dateRange) { case '7_days': start.setDate(now.getDate() - 7); break; case 'this_month': start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth() + 1, 0); break; case 'this_year': start = new Date(now.getFullYear(), 0, 1); end = new Date(now.getFullYear(), 11, 31); break; case 'custom': start = customRange.start ? new Date(customRange.start) : null; end = customRange.end ? new Date(customRange.end) : null; if(end) end.setHours(23, 59, 59, 999); break; } return { startDate: start, endDate: end }; }, [dateRange, customRange]);
+            
+            const filteredData = useMemo(() => {
+                if (!startDate || !endDate) return { customers: [], services: [], invoices: [] };
+                const fc = customers.filter(c => new Date(c.joinDate) >= startDate && new Date(c.joinDate) <= endDate);
+                const fs = services.filter(s => {
+                    const creationDate = new Date(s.creationDate);
+                    return creationDate >= startDate && creationDate <= endDate;
+                });
+                const fi = invoices.filter(i => new Date(i.dueDate) >= startDate && new Date(i.dueDate) <= endDate);
+                return { customers: fc, services: fs, invoices: fi };
+            }, [customers, services, invoices, startDate, endDate]);
+
+            const stats = useMemo(() => ([ { value: filteredData.customers.length, label: 'Pelanggan' }, { value: filteredData.services.length, label: 'Layanan' }, { value: filteredData.invoices.filter(i => i.status === 'Lunas').reduce((sum, i) => sum + i.amount, 0).toLocaleString('id-ID', {style: 'currency', currency: 'IDR'}), label: 'Pendapatan' }, ]), [filteredData]);
+            const revenueData = useMemo(() => { const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]; const data = months.map(month => ({ name: month, Pendapatan: 0 })); filteredData.invoices.forEach(inv => { if (inv.status === 'Lunas') { const monthIndex = new Date(inv.dueDate).getMonth(); data[monthIndex].Pendapatan += inv.amount; } }); return data; }, [filteredData.invoices]);
+            
+            const serviceCategoryData = useMemo(() => {
+                const counts = services.reduce((acc, service) => {
+                    acc[service.type] = (acc[service.type] || 0) + 1;
+                    return acc;
+                }, {});
+                // Urutkan kategori berdasarkan jumlah layanan (desc)
+                const sortedTypes = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+                const shades = ['#007aff', '#4ca6ff', '#b3daff', '#e6f3ff'];
+                return sortedTypes.map((type, idx) => ({
+                    name: type,
+                    value: counts[type],
+                    color: shades[idx] || '#e6f3ff',
+                }));
+            }, [services]);
+
+            const expiringServices = useMemo(() => services.map(s => ({...s, customerName: (customers.find(c=>c.id === s.customerId) || {}).name })).filter(s => getServiceStatus(s) === 'Akan Berakhir').sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)), [services, customers]);
+            const paginatedExpiringServices = useMemo(() => { const startIndex = (expiringCurrentPage - 1) * EXPIRING_ITEMS_PER_PAGE; return expiringServices.slice(startIndex, startIndex + EXPIRING_ITEMS_PER_PAGE); }, [expiringServices, expiringCurrentPage]);
+            const expiringTotalPages = Math.ceil(expiringServices.length / EXPIRING_ITEMS_PER_PAGE);
+            
+            return (
+                <div className="p-4 md:p-6 space-y-6">
+                                         <div className="bg-primary-500 text-white p-6 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between shadow-lg"><div className="flex items-center mb-4 md:mb-0"><div className="bg-primary-600 p-3 rounded-lg mr-4"><Server size={32} /></div><div><h2 className="text-xl font-bold">Selamat Datang, {adminProfile.name}!</h2><p className="text-primary-100 mt-1">Kelola semua dari sini.</p></div></div><button onClick={onNewOrderClick} className="bg-white text-primary-600 hover:bg-primary-100 font-bold py-3 px-5 rounded-lg flex items-center gap-2">New Order</button></div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"><h2 className="text-lg font-bold text-gray-800">Dashboard</h2><div className="flex flex-wrap items-center gap-2"><select value={dateRange} onChange={e => setDateRange(e.target.value)} className="bg-white border border-gray-300 rounded-md py-2 px-3 text-sm"><option value="7_days">7 Hari Terakhir</option><option value="this_month">Bulan Ini</option><option value="this_year">Tahun Ini</option><option value="custom">Kustom</option></select>{dateRange === 'custom' && (<div className="flex gap-2"><input type="date" value={customRange.start} onChange={e => setCustomRange(p => ({...p, start: e.target.value}))} className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm" /><input type="date" value={customRange.end} onChange={e => setCustomRange(p => ({...p, end: e.target.value}))} className="bg-white border border-gray-300 rounded-md py-1.5 px-3 text-sm" /></div>)}</div></div>
+                                         <div><h3 className="text-base font-semibold text-gray-800 mb-4">Statistik</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{stats.map(stat => (<div key={stat.label} className="bg-fresh-white p-6 rounded-xl border border-fresh text-center shadow-sm"><p className="text-3xl font-bold text-gray-800">{stat.value}</p><p className="text-fresh-gray mt-1 text-sm">{stat.label}</p></div>))}</div></div>
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2 bg-fresh-white p-6 rounded-xl border border-fresh shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Grafik Pendapatan</h3><BarChart data={revenueData} dataKey="Pendapatan" labelKey="name" /></div><div className="bg-fresh-white p-6 rounded-xl border border-fresh shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Kategori Layanan</h3><DonutChart data={serviceCategoryData} /></div></div>
+                     <div className="bg-fresh-white p-6 rounded-xl border border-fresh shadow-sm"><h3 className="text-base font-semibold text-gray-800 mb-4">Layanan Akan Kedaluwarsa (30 Hari)</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left whitespace-nowrap">Produk</th>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left whitespace-nowrap">Domain</th>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left whitespace-nowrap">Pelanggan</th>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-left whitespace-nowrap">Jatuh Tempo</th>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Sisa Hari</th>
+      <th className="py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">Aksi</th>
+    </tr>
+  </thead>
+  <tbody className="bg-white divide-y divide-gray-200">
+    {paginatedExpiringServices.length > 0 ? paginatedExpiringServices.map(service => {
+      const daysLeft = Math.ceil((new Date(service.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+      const product = products.find(p => p.id === service.productId);
+      return (
+        <tr key={service.id} className="hover:bg-gray-50">
+          <td className="py-3 px-4 whitespace-nowrap min-w-0">{product ? product.name : '-'}</td>
+          <td className="py-3 px-4 whitespace-nowrap">{service.name}</td>
+          <td className="py-3 px-4 whitespace-nowrap">{service.customerName}</td>
+          <td className="py-3 px-4 whitespace-nowrap">{formatDateID(service.expiryDate)}</td>
+          <td className="py-3 px-4 text-center whitespace-nowrap">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold whitespace-nowrap">
+              <Clock className="w-3 h-3 mr-1 text-yellow-500" />
+              {daysLeft} hari
+            </span>
+          </td>
+          <td className="py-3 px-4 text-center whitespace-nowrap">
+                         <button onClick={() => onOpenModal('service', service)} className='bg-primary-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-primary-600 text-xs'>Kelola</button>
+          </td>
+        </tr>
+      );
+    }) : (
+      <tr>
+        <td colSpan="6" className="text-center p-6 text-gray-500">Tidak ada layanan yang akan kedaluwarsa.</td>
+      </tr>
+    )}
+  </tbody>
+  </table></div><Pagination currentPage={expiringCurrentPage} totalPages={expiringTotalPages} onPageChange={setExpiringCurrentPage} /></div>
+                </div>
+            );
+        };
+        const PelangganView = ({ customers, onOpenModal, initialSearchTerm, onCustomerSelect }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 10;
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const filteredCustomers = useMemo(() => customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.email.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerId.toLowerCase().includes(searchTerm.toLowerCase())), [customers, searchTerm]);
+            const paginatedCustomers = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredCustomers.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredCustomers, currentPage]);
+            const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+            
+            if (customers.length === 0) {
+                return (
+                    <div className="p-4 md:p-6">
+                        <EmptyState icon={<Users size={24} />} title="Belum Ada Pelanggan" description="Mulai dengan menambahkan pelanggan pertama Anda.">
+                                                         <button onClick={() => onOpenModal('customer')} className='flex items-center mx-auto bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md text-sm'>+ Tambah Pelanggan</button>
+                        </EmptyState>
+                    </div>
+                );
+            }
+
+            return (
+                                 <div className="p-4 md:p-6"><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 className="text-lg font-semibold">Daftar Pelanggan</h3><div className='flex flex-row gap-2 w-full md:w-auto'>
+    <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder="Cari nama, email, atau ID..." className="flex-grow" />
+     <button onClick={() => onOpenModal('customer')} className='flex-shrink-0 flex items-center bg-primary-500 text-white font-semibold py-2 px-4 rounded-md text-sm'>
+        <span className='hidden md:inline'>+ Pelanggan</span>
+        <span className='md:hidden'>+ Pelanggan</span>
+    </button>
+</div></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['ID Pelanggan', 'Nama', 'Kontak', 'No WhatsApp', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Aksi' ? 'text-center' : 'text-left'} whitespace-nowrap`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedCustomers.map(item => (
+        <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onCustomerSelect(item)}>
+            <td className="py-3 px-4 font-semibold whitespace-nowrap">{item.customerId}</td>
+            <td className="py-3 px-4 font-medium whitespace-nowrap">{item.name}</td>
+            <td className="py-3 px-4 whitespace-nowrap">{item.email}</td>
+            <td className="py-3 px-4 whitespace-nowrap">{item.whatsapp}</td>
+            <td className="py-3 px-4 text-center whitespace-nowrap">
+                                 <button onClick={e => { e.stopPropagation(); onOpenModal('customer', item); }} className='bg-primary-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-primary-600 text-xs'>Kelola</button>
+            </td>
+        </tr>
+    ))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const LayananView = ({ services, customers, products, onOpenModal, onNewServiceClick, initialSearchTerm }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [currentPage, setCurrentPage] = useState(1);
+            const [activeStatusFilter, setActiveStatusFilter] = useState('Semua');
+            const ITEMS_PER_PAGE = 10;
+            const serviceTypes = useMemo(() => {
+                const types = [...new Set(products.map(p => p.type))];
+                const order = ['Website', 'Domain', 'Hosting', 'Cloud VPS'];
+                const ordered = order.filter(t => types.includes(t)).concat(types.filter(t => !order.includes(t)));
+                return ['Semua', ...ordered];
+            }, [products]);
+            const [activeServiceType, setActiveServiceType] = useState('Semua');
+            useEffect(() => {
+                if(serviceTypes.length > 0 && !serviceTypes.includes(activeServiceType)) {
+                    setActiveServiceType(serviceTypes[0]);
+                }
+            }, [serviceTypes, activeServiceType]);
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const servicesWithDetails = useMemo(() => services.map(service => { const customer = customers.find(c => c.id === service.customerId); return { ...service, customerName: customer ? customer.name : 'N/A', customerIdentifier: customer ? customer.customerId : '', productName: (products.find(p => p.id === service.productId) || {}).name || 'N/A', currentStatus: getServiceStatus(service) }; }), [services, customers, products]);
+            const filteredServices = useMemo(() => servicesWithDetails.filter(s => { const searchMatch = (s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || s.customerIdentifier.toLowerCase().includes(searchTerm.toLowerCase())); const typeMatch = activeServiceType === 'Semua' ? true : s.type === activeServiceType; const statusMatch = () => { if (activeStatusFilter === 'Semua') return true; if (activeStatusFilter === 'Aktif') return s.currentStatus === 'Aktif'; if (activeStatusFilter === 'Pending') return ['Pending', 'Akan Berakhir', 'Jatuh Tempo'].includes(s.currentStatus); if (activeStatusFilter === 'Suspended') return s.currentStatus === 'Suspended'; return false; }; return searchMatch && typeMatch && statusMatch(); }), [servicesWithDetails, searchTerm, activeServiceType, activeStatusFilter]);
+            const paginatedServices = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredServices.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredServices, currentPage]);
+            const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
+            useEffect(() => { setCurrentPage(1); }, [activeServiceType, activeStatusFilter]);
+            const statusTabs = ['Semua', 'Aktif', 'Pending', 'Suspended'];
+            return (
+                                 <div className="p-4 md:p-6"><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><div className="border-b mb-4"><nav className="-mb-px flex space-x-6 overflow-x-auto">{serviceTypes.map(type => (<button key={type} onClick={() => setActiveServiceType(type)} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeServiceType === type ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{type}</button>))} </nav></div><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><div className="border-b w-full md:w-auto"><nav className="-mb-px flex space-x-6 overflow-x-auto">{statusTabs.map(status => (<button key={status} onClick={() => setActiveStatusFilter(status)} className={`py-2 px-1 border-b-2 font-medium text-sm ${activeStatusFilter === status ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{status}</button>))} </nav></div><div className='flex items-center space-x-2 w-full md:w-auto md:max-w-xs'><SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder='Cari layanan...' /><button onClick={onNewServiceClick} className='flex-shrink-0 flex items-center bg-primary-500 text-white font-bold py-2 px-4 rounded-md text-sm'>
+    + Layanan
+</button></div></div>{filteredServices.length > 0 ? (<div className="mt-6 overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['Produk & Layanan', 'Harga', 'Jatuh Tempo', 'Status', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Status' || h === 'Aksi' ? 'text-center' : 'text-left'} whitespace-nowrap`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedServices.map(service => (
+        <tr key={service.id} className="hover:bg-gray-50">
+            <td className="py-3 px-4 whitespace-nowrap"><div className="font-semibold">{service.name}</div><div className="text-xs text-gray-500">{service.customerName} ({service.customerIdentifier})</div></td>
+            <td className="py-3 px-4 font-medium whitespace-nowrap">Rp {service.price.toLocaleString('id-ID')}</td>
+            <td className="py-3 px-4 whitespace-nowrap">{formatDateID(service.expiryDate)}</td>
+            <td className="py-3 px-4 text-center whitespace-nowrap"><StatusBadge status={service.currentStatus} /></td>
+                         <td className="py-3 px-4 text-center whitespace-nowrap"><button onClick={() => onOpenModal('service', service)} className='bg-primary-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-primary-600 text-xs'>Kelola</button></td>
+        </tr>
+    ))}
+</tbody>
+</table><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div>) : (<EmptyState icon={<Server size={24} />} title="Tidak Ada Layanan" description="Tidak ada layanan yang cocok dengan filter yang Anda pilih." />)}</div></div>
+            );
+        };
+        const TagihanView = ({ invoices, customers, services, products, onUpdateInvoiceStatus, onRunBillingCheck, onViewInvoice, initialSearchTerm }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            const [automationResult, setAutomationResult] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 20;
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const invoicesWithDetails = useMemo(() => invoices.map(invoice => { const customer = customers.find(c => c.id === invoice.customerId); const service = services.find(s => s.id === invoice.serviceId); const product = service ? products.find(p => p.id === service.productId) : null; return { ...invoice, customer, service, product, customerName: customer ? customer.name : 'N/A', customerIdentifier: customer ? customer.customerId : '', dueDateFormatted: formatDateID(invoice.dueDate), serviceType: service ? service.type : 'N/A', productName: product ? product.name : 'N/A' }; }), [invoices, customers, services, products]);
+            const filteredInvoices = useMemo(() => invoicesWithDetails.filter(i => i.id.toLowerCase().includes(searchTerm.toLowerCase()) || i.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || i.serviceName.toLowerCase().includes(searchTerm.toLowerCase())), [invoicesWithDetails, searchTerm]);
+            const paginatedInvoices = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredInvoices.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredInvoices, currentPage]);
+            const totalPages = Math.ceil(filteredInvoices.length / ITEMS_PER_PAGE);
+            const handleRunCheck = async () => { setIsLoading(true); setAutomationResult(null); const count = await onRunBillingCheck(); setAutomationResult(`Proses selesai. ${count} tagihan baru berhasil dibuat.`); setIsLoading(false); };
+            
+            return (
+                                 <div className="p-4 md:p-6 space-y-6"><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><h3 className="text-lg font-semibold mb-4">Pusat Otomatisasi Tagihan</h3><div className="bg-primary-50 border-l-4 border-primary-500 p-4 rounded-r-lg"><div className="flex"><div className="py-1"><Bot className="h-6 w-6 text-primary-500 mr-4" /></div><div><p className="font-semibold text-primary-800">Otomatisasi Penagihan</p><p className="text-sm text-primary-700 mt-1">Pindai semua layanan yang akan kedaluwarsa (dalam 30 hari) dan belum memiliki tagihan untuk dibuatkan secara otomatis.</p><button onClick={handleRunCheck} disabled={isLoading} className="mt-4 inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md text-white bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600">{isLoading ? 'Memproses...' : 'Jalankan Pemeriksaan'}</button>{automationResult && <p className="mt-3 text-sm font-semibold text-green-700">{automationResult}</p>}</div></div></div></div><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 className="text-lg font-semibold">Daftar Semua Tagihan</h3><div className='w-full md:w-1/3'><SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder='Cari tagihan...' /></div></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+    <tr>{['No. Invoice', 'Layanan', 'Pelanggan', 'Tanggal Terbit', 'Jatuh Tempo', 'Status', 'Aksi'].map(h => (
+        <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${['Status','Aksi','Tanggal Terbit','Jatuh Tempo'].includes(h) ? 'text-center' : 'text-left'} whitespace-nowrap`}>{h}</th>
+    ))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+    {paginatedInvoices.map(invoice => (
+        <tr key={invoice.id} className="hover:bg-gray-50">
+                         <td className="py-3 px-4 font-medium text-primary-500 whitespace-nowrap">{invoice.id}</td>
+            <td className="py-3 px-4 whitespace-nowrap"><div>{invoice.productName}</div><div className="text-xs text-gray-500">{invoice.serviceName}</div></td>
+            <td className="py-3 px-4 whitespace-nowrap"><div>{invoice.customerName}</div><div className="text-xs text-gray-500">{invoice.customerIdentifier}</div></td>
+            <td className="py-3 px-4 text-center whitespace-nowrap">{formatDateID(new Date())}</td>
+            <td className="py-3 px-4 text-center font-semibold text-red-600 whitespace-nowrap">{formatDateID(invoice.dueDate)}</td>
+            <td className="py-3 px-4 text-center whitespace-nowrap"><StatusBadge status={invoice.status} /></td>
+            <td className="py-3 px-4 text-center flex flex-col gap-2 items-center whitespace-nowrap">
+                                 <button onClick={() => onViewInvoice(invoice)} className='bg-primary-500 text-white font-semibold px-3 py-1.5 rounded-md text-xs'>Lihat Invoice</button>
+                {(invoice.status === 'Belum Dibayar' || invoice.status === 'Jatuh Tempo') && (
+                    <button onClick={() => onUpdateInvoiceStatus(invoice.id, 'Lunas')} className='bg-green-500 text-white font-semibold px-3 py-1.5 rounded-md text-xs flex items-center justify-center min-w-[100px]'>Tandai Lunas</button>
+                )}
+            </td>
+        </tr>
+    ))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const ProdukView = ({ products, onOpenModal, onNewServiceForProduct, initialSearchTerm }) => {
+            const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+            useEffect(() => { setSearchTerm(initialSearchTerm || ''); }, [initialSearchTerm]);
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 10;
+            const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.type.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
+            const paginatedProducts = useMemo(() => { const startIndex = (currentPage - 1) * ITEMS_PER_PAGE; return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE); }, [filteredProducts, currentPage]);
+            const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+            return (
+                                 <div className="p-4 md:p-6"><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold">Daftar Produk</h3><button onClick={() => onOpenModal('product')} className='flex items-center bg-primary-500 text-white font-bold py-2 px-4 rounded-md text-sm'>+ Produk</button></div><div className="mb-4"><SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} placeholder="Cari produk atau tipe..." /></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-gray-50">
+<tr>{['Nama Produk', 'Tipe', 'Harga', 'Status', 'Aksi'].map(h => (
+    <th key={h} className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase ${h === 'Status' || h === 'Aksi' ? 'text-center' : 'text-left'} whitespace-nowrap`}>{h}</th>
+))}</tr>
+</thead>
+<tbody className="bg-white divide-y">
+{paginatedProducts.map(item => (
+    <tr key={item.id} className="hover:bg-gray-50">
+        <td className="py-3 px-4 font-medium whitespace-nowrap">{item.name}</td>
+        <td className="py-3 px-4 whitespace-nowrap">{item.type}</td>
+        <td className="py-3 px-4 whitespace-nowrap">Rp {item.price.toLocaleString('id-ID')}</td>
+        <td className="py-3 px-4 text-center whitespace-nowrap"><StatusBadge status={item.status} /></td>
+        <td className="py-3 px-4 text-center flex justify-center gap-2 whitespace-nowrap">
+                         <button onClick={() => onOpenModal('product', item)} className='bg-primary-500 text-white font-semibold px-3 py-1.5 rounded-md hover:bg-primary-600 text-xs'>Kelola</button>
+        </td>
+    </tr>
+))}
+</tbody>
+</table></div><Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} /></div></div>
+            );
+        };
+        const NotifikasiView = ({ notifications, onNotificationClick }) => {
+            const [currentPage, setCurrentPage] = useState(1);
+            const ITEMS_PER_PAGE = 9;
+            const paginatedNotifications = useMemo(() => {
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                return notifications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+            }, [notifications, currentPage]);
+            const totalPages = Math.ceil(notifications.length / ITEMS_PER_PAGE);
+            return (
+                                 <div className="p-4 md:p-6"><div className="bg-fresh-white p-4 md:p-6 rounded-xl border border-fresh shadow-sm"><h3 className="text-lg font-semibold mb-4">Semua Notifikasi</h3><div className="space-y-2">{paginatedNotifications.length > 0 ? paginatedNotifications.map(notif => (<button key={notif.id} onClick={() => onNotificationClick(notif)} className={`w-full text-left flex items-start p-4 gap-4 border rounded-lg ${!notif.read ? 'bg-primary-50 border-primary-200' : 'bg-white hover:bg-gray-50'}`}><div className="flex-shrink-0 mt-1"><NotificationIcon iconName={notif.iconName} /></div><div className="flex-grow"><p className="text-sm">{notif.text}</p><p className="text-xs text-gray-500 mt-1">{formatRelativeTime(notif.createdAt)}</p></div>{!notif.read && <div className="w-2.5 h-2.5 bg-primary-500 rounded-full mt-1.5 flex-shrink-0"></div>}</button>)) : <EmptyState icon={<Bell size={24}/>} title="Tidak Ada Notifikasi" description="Semua notifikasi akan muncul di sini." />}</div>{totalPages > 1 && (<Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />)}</div></div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        function App() {
+            const [activePage, setActivePage] = useState('Beranda');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [pageContext, setPageContext] = useState({});
+            
+            // Data states
+            const [customers, setCustomers] = useState([]);
+            const [products, setProducts] = useState([]);
+            const [services, setServices] = useState([]);
+            const [invoices, setInvoices] = useState([]);
+            const [notifications, setNotifications] = useState([]);
+            const [adminProfile, setAdminProfile] = useState({ name: 'Admin', email: 'admin@example.com', avatarUrl: null });
+            
+            // Loading and Error states
+            const [isLoading, setIsLoading] = useState(true);
+            const [isFetching, setIsFetching] = useState(false);
+            const [error, setError] = useState(null);
+            const [submissionStatus, setSubmissionStatus] = useState({ type: null });
+
+            // Modal states
+            const [modalType, setModalType] = useState(null);
+            const [editingItem, setEditingItem] = useState(null);
+            const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
+            const [preselectedProductId, setPreselectedProductId] = useState(null);
+            const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+            const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+            const [invoiceModalData, setInvoiceModalData] = useState(null);
+            const [toasts, setToasts] = useState([]);
+            const [confirmModalState, setConfirmModalState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+            // Tambah state dan handler di App
+            const [globalSearch, setGlobalSearch] = useState('');
+            const [globalResults, setGlobalResults] = useState([]);
+            const [showGlobalDropdown, setShowGlobalDropdown] = useState(false);
+            const [logoUrl, setLogoUrl] = useState(() => {
+                // Coba ambil dari localStorage dulu, jika tidak ada gunakan default
+                const storedLogo = localStorage.getItem('hpanel_logo_url');
+                console.log('Initial logoUrl from localStorage:', storedLogo);
+                return storedLogo || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU";
+            });
+
+            const addToast = (message, type = 'info') => { setToasts(prev => [...prev, { id: Date.now(), message, type }]); };
+            const removeToast = (id) => { setToasts(prev => prev.filter(t => t.id !== id)); };
+            
+            // --- DATA FETCHING & PARSING ---
+            const fetchData = useCallback(async (showMainLoader = true) => {
+                if (SCRIPT_URL === 'YOUR_DEPLOYED_SCRIPT_URL_HERE') {
+                    setError("Harap masukkan URL Google Apps Script Anda di dalam kode.");
+                    setIsLoading(false);
+                    return;
+                }
+                if(showMainLoader) setIsLoading(true);
+                setIsFetching(true);
+                setError(null);
+                try {
+                    const response = await fetch(SCRIPT_URL);
+                    if (!response.ok) throw new Error('Gagal mengambil data dari server.');
+                    const result = await response.json();
+                    if (!result.success) throw new Error(result.error || 'Terjadi kesalahan pada server script.');
+                    
+                    const data = result.data;
+                    // Simpan ke localStorage
+                    localStorage.setItem('hpanel_data', JSON.stringify(data));
+                    setCustomers(data.customers.map(c => ({...c, id: Number(c.id), joinDate: new Date(c.joinDate)})));
+                    setProducts(data.products.map(p => ({...p, id: Number(p.id), price: Number(p.price)})));
+                    setServices(data.services.map(s => ({...s, id: Number(s.id), customerId: Number(s.customerId), productId: Number(s.productId), price: Number(s.price), expiryDate: new Date(s.expiryDate), creationDate: s.creationDate ? new Date(s.creationDate) : new Date(s.expiryDate) })));
+                    setInvoices(data.invoices.map(i => ({...i, id: i.id.toString(), customerId: Number(i.customerId), serviceId: Number(i.serviceId), amount: Number(i.amount), dueDate: new Date(i.dueDate)})));
+                    setNotifications(data.notifications.map(n => ({...n, id: Number(n.id), read: n.read === true || n.read === 'TRUE', createdAt: n.createdAt })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                    if (data.profile && data.profile.length > 0) {
+                        const profileData = data.profile[0];
+                        setAdminProfile(profileData);
+                        
+                        // Update logoUrl dari Google Sheet jika ada
+                        if (profileData.logoUrl) {
+                            console.log('Updating logoUrl from Google Sheet:', profileData.logoUrl);
+                            setLogoUrl(profileData.logoUrl);
+                            localStorage.setItem('hpanel_logo_url', profileData.logoUrl);
+                        }
+                    }
+
+                } catch (err) {
+                    setError(err.message);
+                    addToast(err.message, 'error');
+                } finally {
+                    if(showMainLoader) setIsLoading(false);
+                    setIsFetching(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                // Cek cache
+                const cached = localStorage.getItem('hpanel_data');
+                if (cached) {
+                    try {
+                        const data = JSON.parse(cached);
+                        setCustomers(data.customers.map(c => ({...c, id: Number(c.id), joinDate: new Date(c.joinDate)})));
+                        setProducts(data.products.map(p => ({...p, id: Number(p.id), price: Number(p.price)})));
+                        setServices(data.services.map(s => ({...s, id: Number(s.id), customerId: Number(s.customerId), productId: Number(s.productId), price: Number(s.price), expiryDate: new Date(s.expiryDate), creationDate: s.creationDate ? new Date(s.creationDate) : new Date(s.expiryDate) })));
+                        setInvoices(data.invoices.map(i => ({...i, id: i.id.toString(), customerId: Number(i.customerId), serviceId: Number(i.serviceId), amount: Number(i.amount), dueDate: new Date(i.dueDate)})));
+                        setNotifications(data.notifications.map(n => ({...n, id: Number(n.id), read: n.read === true || n.read === 'TRUE', createdAt: n.createdAt })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                        if (data.profile && data.profile.length > 0) {
+                            const profileData = data.profile[0];
+                            setAdminProfile(profileData);
+                            
+                            // Update logoUrl dari cache jika ada
+                            if (profileData.logoUrl) {
+                                console.log('Updating logoUrl from cache:', profileData.logoUrl);
+                                setLogoUrl(profileData.logoUrl);
+                                localStorage.setItem('hpanel_logo_url', profileData.logoUrl);
+                            }
+                        }
+                        setIsLoading(false);
+                    } catch (e) { /* abaikan jika cache rusak */ }
+                }
+                fetchData();
+            }, []);
+
+            useEffect(() => {
+                if (activePage === 'Beranda') {
+                    syncServiceStatuses(services, postData, fetchData);
+                }
+            }, [activePage]);
+
+            // Global search effect
+            useEffect(() => {
+                console.log('Global search effect triggered:', { globalSearch, customers: customers.length, services: services.length, products: products.length, invoices: invoices.length, isLoading });
+                
+                if (isLoading) {
+                    setGlobalResults([]);
+                    setShowGlobalDropdown(false);
+                    return;
+                }
+                if (!globalSearch) {
+                    setGlobalResults([]);
+                    setShowGlobalDropdown(false);
+                    return;
+                }
+                
+                const keyword = globalSearch.toLowerCase();
+                let results = [];
+                
+                // Debug: log data yang tersedia
+                console.log('Searching with keyword:', keyword);
+                console.log('Available customers:', customers);
+                console.log('Available services:', services);
+                console.log('Available products:', products);
+                console.log('Available invoices:', invoices);
+                
+                // Pelanggan
+                customers.forEach(c => {
+                    if (c.name.toLowerCase().includes(keyword) || c.email.toLowerCase().includes(keyword) || c.customerId.toLowerCase().includes(keyword)) {
+                        results.push({ type: 'Pelanggan', label: c.name, sub: c.email, id: c.id });
+                    }
+                });
+                
+                // Layanan
+                services.forEach(s => {
+                    if (s.name.toLowerCase().includes(keyword) || s.domain?.toLowerCase().includes(keyword)) {
+                        results.push({ type: 'Layanan', label: s.name, sub: s.domain, id: s.id });
+                    }
+                });
+                
+                // Produk
+                products.forEach(p => {
+                    if (p.name.toLowerCase().includes(keyword) || p.type.toLowerCase().includes(keyword)) {
+                        results.push({ type: 'Produk', label: p.name, sub: p.type, id: p.id });
+                    }
+                });
+                
+                // Tagihan
+                invoices.forEach(i => {
+                    if (i.id.toLowerCase().includes(keyword)) {
+                        results.push({ type: 'Tagihan', label: i.id, sub: i.customerName, id: i.id });
+                    }
+                });
+                
+                console.log('Search results:', results);
+                setGlobalResults(results.slice(0, 8));
+                setShowGlobalDropdown(true);
+            }, [globalSearch, customers, services, products, invoices, isLoading]);
+
+            // Global search handlers
+            const handleGlobalSelect = useCallback((item) => {
+                console.log('handleGlobalSelect called with:', item);
+                setShowGlobalDropdown(false);
+                setGlobalSearch('');
+                if (item.type === 'Pelanggan') {
+                    console.log('Navigating to Pelanggan with search term:', item.label);
+                    setActivePage('Pelanggan');
+                    setPageContext({ initialSearchTerm: item.label });
+                } else if (item.type === 'Layanan') {
+                    console.log('Navigating to Layanan with search term:', item.label);
+                    setActivePage('Layanan');
+                    setPageContext({ initialSearchTerm: item.label });
+                } else if (item.type === 'Produk') {
+                    console.log('Navigating to Produk with search term:', item.label);
+                    setActivePage('Produk');
+                    setPageContext({ initialSearchTerm: item.label });
+                } else if (item.type === 'Tagihan') {
+                    console.log('Navigating to Tagihan with search term:', item.label);
+                    setActivePage('Tagihan');
+                    setPageContext({ initialSearchTerm: item.label });
+                }
+            }, []);
+
+            const handleGlobalSearchClick = useCallback(() => {
+                setShowGlobalDropdown(true);
+                if (globalResults.length > 0) {
+                    handleGlobalSelect(globalResults[0]);
+                }
+            }, [globalResults, handleGlobalSelect]);
+
+            const postData = useCallback(async (action, data) => {
+                try {
+                    console.log('postData called:', { action, data, SCRIPT_URL });
+                    
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify({ action, data })
+                    });
+                    
+                    console.log('postData response status:', response.status);
+                    
+                    if (!response.ok) {
+                         throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log('postData result:', result);
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'An unknown error occurred on the server.');
+                    }
+                    
+                    return { success: true, data: result.data };
+                } catch (err) {
+                    console.error("postData Error:", err);
+                    console.error("postData Error details:", {
+                        action,
+                        data,
+                        SCRIPT_URL,
+                        error: err.message,
+                        stack: err.stack
+                    });
+                    addToast(`Gagal menyimpan data: ${err.message}`, 'error');
+                    return { success: false, error: err.message };
+                }
+            }, []);
+
+            const addNotification = useCallback(async (notifData) => {
+                const newNotif = {
+                    ...notifData,
+                    id: Date.now(),
+                    createdAt: new Date().toISOString(),
+                    read: false,
+                };
+                setNotifications(prev => [newNotif, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                await postData('SAVE_NOTIFICATION', newNotif);
+            }, [postData]);
+
+            const handleSave = async (type, itemToSave) => {
+                setSubmissionStatus({ type: 'save' });
+                const isNew = !itemToSave.id;
+                const action = `SAVE_${type.toUpperCase()}`;
+
+                if (type === 'customer' && isNew) {
+                    itemToSave.joinDate = new Date();
+                }
+
+                const result = await postData(action, itemToSave);
+                
+                if (result.success) {
+                    if (type === 'customer' && isNew) {
+                        await addNotification({
+                            iconName: 'Users',
+                            text: `Pelanggan baru, ${itemToSave.name}, telah ditambahkan.`,
+                            page: 'Pelanggan',
+                            targetId: itemToSave.name
+                        });
+                    }
+                    // Invalidate cache dan fetch ulang
+                    localStorage.removeItem('hpanel_data');
+                    addToast(`Data ${type} berhasil disimpan.`, 'success');
+                    closeModal();
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            const handleDelete = (type, item) => {
+                const performDelete = async () => {
+                    setSubmissionStatus({ type: 'delete' });
+                    const action = `DELETE_${type.toUpperCase()}`;
+                    const result = await postData(action, { id: item.id });
+                    if(result.success) {
+                        // Invalidate cache dan fetch ulang
+                        localStorage.removeItem('hpanel_data');
+                        addToast(`${type} berhasil dihapus.`, 'success');
+                        setConfirmModalState({ isOpen: false });
+                        closeModal();
+                        await fetchData(false);
+                    }
+                    setSubmissionStatus({ type: null });
+                };
+
+                setConfirmModalState({
+                    isOpen: true,
+                    onConfirm: performDelete,
+                    title: `Hapus ${type}`,
+                    message: `Anda yakin ingin menghapus ${type} "${item.name || item.id}"? Tindakan ini tidak dapat diurungkan.`
+                });
+            };
+            
+            const handleSaveOrder = async (orderData) => {
+                setSubmissionStatus({ type: 'save' });
+                const product = products.find(p => p.id == orderData.productId);
+                if (!product) {
+                    addToast('Produk tidak valid.', 'error');
+                    setSubmissionStatus({ type: null });
+                    return;
+                }
+
+                const newService = {
+                    customerId: parseInt(orderData.customerId),
+                    productId: parseInt(orderData.productId),
+                    name: orderData.domain,
+                    type: product.type,
+                    status: 'Aktif',
+                    creationDate: new Date(),
+                    expiryDate: orderData.expiryDate,
+                    price: orderData.price
+                };
+                
+                const result = await postData('SAVE_SERVICE', newService);
+                if (result.success) {
+                    await addNotification({
+                        iconName: 'Server',
+                        text: `Layanan baru ${orderData.domain} telah dibuat.`,
+                        page: 'Layanan',
+                        targetId: orderData.domain
+                    });
+                    // Invalidate cache dan fetch ulang
+                    localStorage.removeItem('hpanel_data');
+                    addToast('Layanan baru berhasil dibuat!', 'success');
+                    setIsNewOrderModalOpen(false);
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            // FIX: Unified confirmation logic
+            const handleUpdateInvoiceStatus = (invoiceId, newStatus) => {
+                setConfirmModalState({
+                    isOpen: true,
+                    title: "Konfirmasi Pembayaran",
+                    message: `Apakah Anda yakin ingin menandai tagihan ${invoiceId} sebagai Lunas?`,
+                    onConfirm: async () => {
+                        setSubmissionStatus({ type: 'confirm' });
+                        
+                        const result = await postData('UPDATE_INVOICE_STATUS', { id: invoiceId, status: newStatus });
+                        
+                        setSubmissionStatus({ type: null });
+                        setConfirmModalState({isOpen: false});
+
+                        if (result.success) {
+                            if (newStatus === 'Lunas') {
+                                await addNotification({
+                                    iconName: 'CheckCircle',
+                                    text: `Tagihan ${invoiceId} telah lunas.`,
+                                    page: 'Tagihan',
+                                    targetId: invoiceId
+                                });
+
+                                const invoice = invoices.find(inv => inv.id === invoiceId);
+                                const service = services.find(s => s.id === invoice.serviceId);
+                                const product = products.find(p => p.id === (services.find(s => s.id === invoice.serviceId) || {}).productId);
+                                if (service && product) {
+                                    const serviceToUpdate = { ...service };
+                                    serviceToUpdate.status = 'Aktif';
+                                    if (product.cycle !== 'Sekali Bayar') {
+                                        const newExpiryDate = new Date(serviceToUpdate.expiryDate);
+                                        if (product.cycle === 'Tahunan') newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
+                                        else if (product.cycle === 'Bulanan') newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
+                                        serviceToUpdate.expiryDate = newExpiryDate;
+                                    }
+                                    await postData('BATCH_UPDATE_SERVICES', [serviceToUpdate]);
+                                }
+                            }
+                            // Invalidate cache dan fetch ulang
+                            localStorage.removeItem('hpanel_data');
+                            addToast(`Tagihan ${invoiceId} diperbarui.`, 'success');
+                            await fetchData(false);
+                        }
+                    }
+                });
+            };
+
+            const handleRunBillingCheck = async () => {
+                const now = new Date();
+                const thirtyDaysFromNow = new Date();
+                thirtyDaysFromNow.setDate(now.getDate() + 30);
+                let newInvoices = [];
+                
+                services.forEach(service => {
+                    const expiryDate = new Date(service.expiryDate);
+                    const product = products.find(p => p.id === service.productId);
+                    if (product && product.cycle !== 'Sekali Bayar' && expiryDate <= thirtyDaysFromNow) {
+                        const hasExistingInvoice = invoices.some(inv => inv.serviceId === service.id && (inv.status === 'Belum Dibayar' || inv.status === 'Jatuh Tempo'));
+                        if (!hasExistingInvoice) {
+                            newInvoices.push({
+                                id: `INV-${Date.now().toString().slice(-5)}-${service.id}`,
+                                customerId: service.customerId, serviceId: service.id, serviceName: service.name,
+                                amount: service.price, status: 'Belum Dibayar', dueDate: service.expiryDate
+                            });
+                        }
+                    }
+                });
+
+                if (newInvoices.length > 0) {
+                    const result = await postData('SAVE_INVOICES', newInvoices);
+                    if (result.success) {
+                        // Invalidate cache dan fetch ulang
+                        localStorage.removeItem('hpanel_data');
+                        await addNotification({
+                            iconName: 'FileText',
+                            text: `${newInvoices.length} tagihan baru berhasil dibuat secara otomatis.`,
+                            page: 'Tagihan'
+                        });
+                        await fetchData(false);
+                    }
+                }
+                return newInvoices.length;
+            };
+
+            const handleSaveProfile = async (newProfile) => {
+                setSubmissionStatus({ type: 'save' });
+                const result = await postData('SAVE_PROFILE', { ...newProfile, id: 1 });
+                if (result.success) {
+                    // Invalidate cache dan fetch ulang
+                    localStorage.removeItem('hpanel_data');
+                    addToast('Profil berhasil diperbarui.', 'success');
+                    closeModal();
+                    await fetchData(false);
+                }
+                setSubmissionStatus({ type: null });
+            };
+
+            const handleNotificationClick = async (notification) => {
+                const currentUnread = notifications.find(n => n.id === notification.id)?.read === false;
+                const markAll = notification.id === 'all';
+
+                const updatedNotifications = notifications.map(n => 
+                    (markAll || n.id === notification.id) ? { ...n, read: true } : n
+                );
+                setNotifications(updatedNotifications);
+                
+                if (notification.page) {
+                    handleNavigate(notification.page, { initialSearchTerm: notification.targetId });
+                }
+
+                const notificationsToUpdateInSheet = markAll 
+                    ? notifications.filter(n => !n.read).map(n => ({ id: n.id, read: true }))
+                    : (currentUnread ? [{ id: notification.id, read: true }] : []);
+                
+                if (notificationsToUpdateInSheet.length > 0) {
+                    await postData('BATCH_UPDATE_NOTIFICATIONS', notificationsToUpdateInSheet);
+                }
+            };
+            
+            const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
+            const closeSidebar = useCallback(() => { if (window.innerWidth < 768) setIsSidebarOpen(false); }, []);
+            const handleNavigate = useCallback((page, context = {}) => { setActivePage(page); setPageContext(context); setIsNotificationOpen(false); closeSidebar(); }, []);
+            const handleLogout = useCallback(() => {
+                // Clear localStorage
+                localStorage.removeItem('hpanel_logged_in');
+                localStorage.removeItem('hpanel_admin_data');
+                localStorage.removeItem('hpanel_data');
+                localStorage.removeItem('hpanel_logo_url');
+                
+                // Redirect to login page
+                window.location.href = 'login.html';
+            }, []);
+            const openModal = (type, item = null) => { closeSidebar(); if (type === 'profile') { setIsProfileModalOpen(true); return; } setModalType(type); setEditingItem(item); };
+            const closeModal = () => { setModalType(null); setEditingItem(null); setIsProfileModalOpen(false); setPreselectedProductId(null); setInvoiceModalData(null); };
+            const handleCustomerSelect = (customer) => handleNavigate('Layanan', { initialSearchTerm: customer.customerId });
+            const handleNewServiceForProduct = (product) => {
+                setPreselectedProductId(product.id);
+                setIsNewOrderModalOpen(true);
+            };
+            const handleViewInvoice = (invoice) => {
+                setInvoiceModalData({
+                    invoice,
+                    customer: customers.find(c => c.id === invoice.customerId),
+                    service: services.find(s => s.id === invoice.serviceId),
+                    product: products.find(p => p.id === (services.find(s => s.id === invoice.serviceId) || {}).productId)
+                });
+            };
+            
+            const renderContent = () => {
+                const { initialSearchTerm } = pageContext;
+                return (
+                    <div className="relative transition-opacity">
+                        {(() => {
+                            switch (activePage) {
+                                case 'Beranda': return <BerandaView customers={customers} services={services} invoices={invoices} products={products} onOpenModal={openModal} onNewOrderClick={() => setIsNewOrderModalOpen(true)} adminProfile={adminProfile} />;
+                                case 'Pelanggan': return <PelangganView customers={customers} onOpenModal={openModal} initialSearchTerm={initialSearchTerm} onCustomerSelect={handleCustomerSelect} />;
+                                case 'Layanan': return <LayananView services={services} customers={customers} products={products} onOpenModal={openModal} onNewServiceClick={() => setIsNewOrderModalOpen(true)} initialSearchTerm={initialSearchTerm} />;
+                                case 'Tagihan': return <TagihanView invoices={invoices} customers={customers} services={services} products={products} onUpdateInvoiceStatus={handleUpdateInvoiceStatus} onRunBillingCheck={handleRunBillingCheck} onViewInvoice={handleViewInvoice} initialSearchTerm={initialSearchTerm} />;
+                                case 'Produk': return <ProdukView products={products} onOpenModal={openModal} onNewServiceForProduct={handleNewServiceForProduct} initialSearchTerm={initialSearchTerm} />;
+                                case 'Notifikasi': return <NotifikasiView notifications={notifications} onNotificationClick={handleNotificationClick} />;
+                                case 'Pengaturan': 
+                                  return <PengaturanView 
+                                    logoUrl={logoUrl}
+                                    setLogoUrl={setLogoUrl} 
+                                    adminProfile={adminProfile} 
+                                    setAdminProfile={setAdminProfile} 
+                                    onChangePassword={handleChangePassword}
+                                    postData={postData}
+                                    setSubmissionStatus={setSubmissionStatus}
+                                    addToast={addToast}
+                                    fetchData={fetchData}
+                                    submissionStatus={submissionStatus}
+                                  />;
+                                default: return <div className="p-6">Konten untuk {activePage}</div>;
+                            }
+                        })()}
+                    </div>
+                );
+            };
+            
+            const menuItems = [ 
+                { id: 'Beranda', label: 'Beranda', icon: <Home size={20}/> }, 
+                { id: 'Pelanggan', label: 'Kelola Pelanggan', icon: <Users size={20}/> }, 
+                { id: 'Layanan', label: 'Kelola Layanan', icon: <Server size={20}/> }, 
+                { id: 'Tagihan', label: 'Kelola Tagihan', icon: <FileText size={20}/> }, 
+                { id: 'Produk', label: 'Kelola Produk', icon: <ShoppingCart size={20}/> }, 
+                { id: 'Notifikasi', label: 'Notifikasi', icon: <Bell size={20}/> }, 
+                { id: 'Pengaturan', label: 'Pengaturan', icon: <Settings size={20}/> },
+            ];
+
+            {isLoading ? (
+              <div className="flex justify-center items-center h-full min-h-[300px]">
+                {/* Spinner dihapus */}
+              </div>
+            ) : (
+              renderContent()
+            )}
+
+            return (
+                                 <div className="flex h-screen bg-fresh-gray font-sans text-sm">
+                    {toasts.map(toast => <Toast key={toast.id} {...toast} onDismiss={() => removeToast(toast.id)} />)}
+                    {modalType && (
+                        (modalType === 'customer') ? <CustomerModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('customer', data)} onDelete={() => handleDelete('customer', editingItem)} item={editingItem} /> :
+                        (modalType === 'product') ? <ProductModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('product', data)} onDelete={() => handleDelete('product', editingItem)} item={editingItem} products={products} /> :
+                        (modalType === 'service') ? <ServiceModal submissionStatus={submissionStatus} isOpen={true} onClose={closeModal} onSave={(data) => handleSave('service', data)} onDelete={() => handleDelete('service', editingItem)} item={editingItem} customers={customers} products={products} /> : null
+                    )}
+                    <NewOrderModal submissionStatus={submissionStatus} isOpen={isNewOrderModalOpen} onClose={() => setIsNewOrderModalOpen(false)} onSave={handleSaveOrder} customers={customers} products={products} initialProductId={preselectedProductId} />
+                    <ProfileModal submissionStatus={submissionStatus} isOpen={isProfileModalOpen} onClose={closeModal} onSave={handleSaveProfile} profile={adminProfile} />
+                    <InvoiceModal isOpen={!!invoiceModalData} onClose={closeModal} invoiceData={invoiceModalData} companyProfile={{...adminProfile, logoUrl: adminProfile.logoUrl || logoUrl}} />
+                    <ConfirmationModal submissionStatus={submissionStatus} isOpen={confirmModalState.isOpen} onClose={() => setConfirmModalState({ isOpen: false })} onConfirm={confirmModalState.onConfirm} title={confirmModalState.title}>{confirmModalState.message}</ConfirmationModal>
+
+                    {isSidebarOpen && <div onClick={closeSidebar} className='fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden'></div>}
+                                         <aside className={`fixed inset-y-0 left-0 bg-fresh-white h-full z-40 transition-all duration-300 ease-in-out transform flex flex-col md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64 shadow-lg' : '-translate-x-full w-64'} md:w-64`}>
+                                       <div className="flex items-center border-b border-fresh h-16 px-4 justify-between">
+                <img src={logoUrl} alt="Logo Aplikasi" className="h-8 w-auto" />
+                <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 rounded-md hover-fresh"><X size={24} /></button>
+              </div>
+                        <nav className="flex-grow p-4">
+                            <ul>
+                                {menuItems.map(item => (
+                                    <li key={item.id} className="mb-2">
+                                                                                 <a href="#" onClick={(e) => { e.preventDefault(); handleNavigate(item.id); }} className={`flex items-center p-3 rounded-lg text-sm font-medium ${activePage === item.id ? 'bg-primary-100 text-primary-600' : 'text-fresh-gray hover-fresh'}`}>
+                                            {item.icon}
+                                            <span className="ml-3 flex-grow">{item.label}</span>
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                        {/* Logout Button */}
+                        <div className="p-4 border-t border-fresh">
+                            <button 
+                                onClick={handleLogout} 
+                                className="flex items-center w-full p-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100 transition-colors duration-200"
+                            >
+                                <LogOut size={20} />
+                                <span className="ml-3">Logout</span>
+                            </button>
+                        </div>
+                    </aside>
+                    
+                    <div className="flex-1 flex flex-col overflow-y-auto">
+                        <header className="bg-white p-4 flex items-center border-b sticky top-0 z-30 h-16 relative">
+                          <button onClick={() => setIsSidebarOpen(true)} className="text-gray-500 md:hidden mr-2"><Menu size={24} /></button>
+                          <img src={logoUrl} alt="Logo Aplikasi" className="h-8 w-auto mr-3 md:hidden" />
+                          <div className="flex-1 flex justify-center">
+                            <div className="relative w-full max-w-md">
+                              <input type="text" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} onFocus={() => setShowGlobalDropdown(true)} onBlur={() => setTimeout(()=>setShowGlobalDropdown(false),150)} placeholder="Cari pelanggan, layanan, produk..." className="border border-gray-300 rounded-md pl-9 pr-10 py-2 w-full focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200" />
+                              <button type="button" onMouseDown={() => handleGlobalSearchClick()} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600">
+                                <Search className="h-5 w-5" />
+                              </button>
+                              {showGlobalDropdown && (
+                                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto animate-fade-in-down">
+                                  {isLoading ? (
+                                    <div className="px-4 py-3 text-gray-400 text-sm text-center flex items-center justify-center gap-2"><Spinner className="h-4 w-4 mr-2" />Memuat data...</div>
+                                  ) : globalResults.length > 0 ? globalResults.map((item, idx) => (
+                                    <button key={idx} onClick={e => { e.preventDefault(); handleGlobalSelect(item); }} className="w-full text-left px-4 py-2 hover:bg-primary-100 flex flex-col">
+                                      <span className="font-semibold text-gray-800 text-sm">{item.label}</span>
+                                      <span className="text-xs text-gray-500">{item.type}{item.sub ? ' • ' + item.sub : ''}</span>
+                                    </button>
+                                  )) : (
+                                    <div className="px-4 py-3 text-gray-400 text-sm text-center">Tidak ditemukan</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 md:space-x-4 ml-2">
+                            {/* Icon notifikasi dan avatar */}
+                            <div className="relative flex items-center">
+                              {/* Spinner loading di header */}
+                              {isLoading && (
+                                <span className="mr-2 align-middle inline-flex"><Spinner className="h-5 w-5 text-gray-400" /></span>
+                              )}
+                              <button onClick={() => setIsNotificationOpen(p => !p)} className={`text-gray-500 p-2 rounded-full hover:bg-gray-100 ${unreadCount > 0 ? 'relative' : ''}`}>
+                                <Bell className={`h-6 w-6 ${unreadCount > 10 ? 'animate-shake-red' : ''}`} />
+                                                                  {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                                      {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                  )}
+                              </button>
+                              <NotificationPopover
+                                isOpen={isNotificationOpen}
+                                onClose={() => setIsNotificationOpen(false)}
+                                notifications={notifications}
+                                onNotificationClick={handleNotificationClick}
+                                onNavigate={handleNavigate}
+                              />
+                            </div>
+                            <button onClick={() => openModal('profile')} className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100">
+                              <Avatar name={adminProfile.name} imageUrl={adminProfile.avatarUrl} size="md" />
+                              <div className="hidden md:block text-left">
+                                <p className="font-semibold text-sm">{adminProfile.name}</p>
+                                <p className="text-xs text-gray-500">Administrator</p>
+                              </div>
+                            </button>
+                          </div>
+                        </header>
+                        <div className="bg-white border-b p-4 flex items-center gap-2">
+                            <h1 className="text-lg font-bold text-gray-800">{activePage}</h1>
+                            {/* Spinner dihapus */}
+                        </div>
+                        <main className="flex-grow">{renderContent()}</main>
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        async function syncServiceStatuses(services, postData, fetchData) {
+          let updated = false;
+          for (const service of services) {
+            const calculatedStatus = getServiceStatus(service);
+            if (service.status !== calculatedStatus) {
+              await postData('SAVE_SERVICE', { ...service, status: calculatedStatus });
+              updated = true;
+            }
+          }
+          // Hanya fetch ulang data jika ada perubahan status
+          if (updated) {
+            await fetchData(false);
+          }
+        }
+
+        // Skeleton Loader Component
+        const Skeleton = ({ height = 20, width = '100%', className = '' }) => (
+            <div className={`bg-gray-200 rounded animate-pulse ${className}`} style={{ height, width }} />
+        );
+
+        // Helper for consistent Indonesian date format
+        function formatDateID(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        // Tambah komponen PengaturanView
+        function PengaturanView({ logoUrl, setLogoUrl, adminProfile, setAdminProfile, onChangePassword, postData, setSubmissionStatus, addToast, fetchData, submissionStatus }) {
+    const [logoPreview, setLogoPreview] = useState(logoUrl || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU");
+  const [profile, setProfile] = useState(adminProfile);
+  const [passwords, setPasswords] = useState({ old: '', new: '', confirm: '' });
+  const [scriptUrl, setScriptUrl] = useState(SCRIPT_URL);
+  const [msg, setMsg] = useState('');
+  const [logoLoading, setLogoLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Update logoPreview when logoUrl changes
+  useEffect(() => {
+    if (logoUrl) {
+      setLogoPreview(logoUrl);
+    }
+  }, [logoUrl]);
+
+          const handleLogoChange = e => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => setLogoPreview(reader.result);
+              reader.readAsDataURL(file);
+            }
+          };
+          
+          const handleLogoSave = async () => {
+            if (!logoPreview) {
+              setMsg('Pilih file logo terlebih dahulu!');
+              return;
+            }
+            
+            setLogoLoading(true);
+            try {
+              console.log('Saving logo to Google Sheet:', logoPreview.substring(0, 50) + '...');
+              
+              // Simpan logo sebagai bagian dari profil admin
+              const updatedProfile = {
+                ...adminProfile,
+                id: 1,
+                logoUrl: logoPreview,
+                name: adminProfile.name,
+                email: adminProfile.email,
+                role: adminProfile.role || 'Administrator',
+                avatarUrl: adminProfile.avatarUrl // Pastikan avatar tidak hilang
+              };
+              
+              const result = await postData('SAVE_PROFILE', updatedProfile);
+              console.log('Logo save result:', result);
+              
+              if (result.success) {
+                // Update state dan localStorage
+                setLogoUrl(logoPreview);
+                setAdminProfile(updatedProfile);
+                localStorage.setItem('hpanel_logo_url', logoPreview);
+                
+                // Invalidate cache dan fetch ulang
+                localStorage.removeItem('hpanel_data');
+                addToast('Logo berhasil diubah!', 'success');
+                await fetchData(false);
+                setMsg('Logo berhasil diubah dan tersimpan!');
+                setTimeout(() => setMsg(''), 2000);
+              } else {
+                setMsg('Gagal menyimpan logo: ' + (result.error || 'Unknown error'));
+                console.error('Logo save failed:', result);
+              }
+            } catch (error) {
+              setMsg('Gagal menyimpan logo: ' + error.message);
+              console.error('Logo save error:', error);
+            }
+            setLogoLoading(false);
+          };
+          
+          const handleProfileChange = e => {
+            const { name, value } = e.target;
+            setProfile(p => ({ ...p, [name]: value }));
+          };
+          
+          const handleProfileSave = async () => {
+            if (!profile.name || !profile.email) {
+              setMsg('Nama dan email harus diisi!');
+              return;
+            }
+            
+            setProfileLoading(true);
+            try {
+              const updatedProfile = {
+                ...profile,
+                id: 1,
+                role: profile.role || 'Administrator',
+                logoUrl: profile.logoUrl || logoUrl, // Pastikan logo tidak hilang
+                avatarUrl: adminProfile.avatarUrl // Pastikan avatar tidak hilang
+              };
+              
+              console.log('Saving profile data:', {
+                updatedProfile,
+                hasName: !!updatedProfile.name,
+                hasEmail: !!updatedProfile.email,
+                hasLogoUrl: !!updatedProfile.logoUrl,
+                hasAvatarUrl: !!updatedProfile.avatarUrl
+              });
+              
+              const result = await postData('SAVE_PROFILE', updatedProfile);
+              console.log('Profile save result:', result);
+              
+              if (result.success) {
+                setAdminProfile(updatedProfile);
+                localStorage.removeItem('hpanel_data');
+                addToast('Profil berhasil diubah!', 'success');
+                await fetchData(false);
+                setMsg('Profil berhasil diubah!');
+                setTimeout(() => setMsg(''), 2000);
+              } else {
+                setMsg('Gagal menyimpan profil: ' + (result.error || 'Unknown error'));
+                console.error('Profile save failed:', result);
+              }
+            } catch (error) {
+              setMsg('Gagal menyimpan profil: ' + error.message);
+              console.error('Profile save error:', error);
+            }
+            setProfileLoading(false);
+          };
+          
+          const handlePasswordChange = e => {
+            const { name, value } = e.target;
+            setPasswords(p => ({ ...p, [name]: value }));
+          };
+          
+          const handlePasswordSave = async () => {
+            if (!passwords.old || !passwords.new || !passwords.confirm) {
+              setMsg('Semua field password harus diisi!');
+              return;
+            }
+            
+            if (passwords.new !== passwords.confirm) {
+              setMsg('Password baru dan konfirmasi tidak cocok!');
+              return;
+            }
+            
+            if (passwords.new.length < 6) {
+              setMsg('Password baru minimal 6 karakter!');
+              return;
+            }
+            
+            setPasswordLoading(true);
+            try {
+              // Simpan password sebagai bagian dari profil admin
+              const updatedProfile = {
+                ...adminProfile,
+                id: 1,
+                password: passwords.new, // Password akan dienkripsi di Google Apps Script
+                name: adminProfile.name,
+                email: adminProfile.email,
+                role: adminProfile.role || 'Administrator',
+                logoUrl: adminProfile.logoUrl || logoUrl
+              };
+              
+              const result = await postData('SAVE_PROFILE', updatedProfile);
+              if (result.success) {
+                // Update password di frontend (jika ada fungsi onChangePassword)
+                if (onChangePassword) {
+                  onChangePassword(passwords.old, passwords.new);
+                }
+                
+                setAdminProfile(updatedProfile);
+                localStorage.removeItem('hpanel_data');
+                addToast('Password berhasil diubah!', 'success');
+                await fetchData(false);
+                setMsg('Password berhasil diubah!');
+                setPasswords({ old: '', new: '', confirm: '' });
+                setTimeout(() => setMsg(''), 2000);
+              } else {
+                setMsg('Gagal menyimpan password: ' + (result.error || 'Unknown error'));
+              }
+            } catch (error) {
+              setMsg('Gagal menyimpan password: ' + error.message);
+            }
+            setPasswordLoading(false);
+          };
+
+          const handleScriptUrlSave = () => {
+            if (scriptUrl && scriptUrl.trim() !== '') {
+              localStorage.setItem('hpanel_script_url', scriptUrl.trim());
+              window.SCRIPT_URL = scriptUrl.trim();
+              setMsg('URL Apps Script berhasil diubah! Silakan refresh halaman.');
+              setTimeout(() => setMsg(''), 3000);
+            } else {
+              setMsg('URL Apps Script tidak boleh kosong!');
+            }
+          };
+          
+          return (
+            <div className="max-w-xl mx-auto p-4 space-y-8">
+              <h2 className="text-xl font-bold mb-4">Pengaturan Aplikasi</h2>
+              {msg && <div className={`p-2 rounded mb-2 ${msg.includes('berhasil') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{msg}</div>}
+              
+              <div className="bg-white rounded-xl shadow p-4 space-y-4 border">
+                <h3 className="font-semibold mb-2">URL Apps Script</h3>
+                <div className="space-y-2">
+                  <label className="block">URL Google Apps Script
+                    <input 
+                      type="url" 
+                      value={scriptUrl} 
+                      onChange={(e) => setScriptUrl(e.target.value)} 
+                      placeholder="https://script.google.com/macros/s/..." 
+                      className="w-full border rounded p-2 mt-1" 
+                    />
+                  </label>
+                </div>
+                <button onClick={handleScriptUrlSave} className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600 mt-2">Simpan URL</button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow p-4 space-y-4 border">
+                <h3 className="font-semibold mb-2">Ganti Logo Aplikasi</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <img src={logoPreview} alt="Logo Preview" className="h-16 w-auto rounded border" />
+                    <div>
+                      <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm" />
+                      <p className="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF (Max: 2MB)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleLogoSave} 
+                      disabled={logoLoading || !logoPreview}
+                      className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                    >
+                      {logoLoading ? <Spinner className="h-5 w-5" /> : 'Simpan Logo'}
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const defaultLogo = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU";
+                        setLogoPreview(defaultLogo);
+                        
+                        const updatedProfile = {
+                          ...adminProfile,
+                          id: 1,
+                          logoUrl: defaultLogo,
+                          name: adminProfile.name,
+                          email: adminProfile.email,
+                          role: adminProfile.role || 'Administrator',
+                          avatarUrl: adminProfile.avatarUrl
+                        };
+                        
+                        const result = await postData('SAVE_PROFILE', updatedProfile);
+                        if (result.success) {
+                          setLogoUrl(defaultLogo);
+                          setAdminProfile(updatedProfile);
+                          localStorage.setItem('hpanel_logo_url', defaultLogo);
+                          localStorage.removeItem('hpanel_data');
+                          addToast('Logo berhasil direset!', 'success');
+                          await fetchData(false);
+                          setMsg('Logo berhasil direset ke default!');
+                        } else {
+                          setMsg('Gagal reset logo: ' + (result.error || 'Unknown error'));
+                        }
+                        setTimeout(() => setMsg(''), 2000);
+                      }}
+                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center justify-center min-w-[100px]"
+                    >
+                      Reset Logo
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow p-4 space-y-4 border">
+                <h3 className="font-semibold mb-2">Profil Admin</h3>
+                <div className="space-y-2">
+                  <label className="block">Nama
+                    <input 
+                      name="name" 
+                      value={profile.name} 
+                      onChange={handleProfileChange} 
+                      className="w-full border rounded p-2 mt-1" 
+                      placeholder="Masukkan nama admin"
+                    />
+                  </label>
+                  <label className="block">Email
+                    <input 
+                      name="email" 
+                      value={profile.email} 
+                      onChange={handleProfileChange} 
+                      className="w-full border rounded p-2 mt-1" 
+                      placeholder="admin@example.com"
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={handleProfileSave} 
+                    disabled={profileLoading || !profile.name || !profile.email}
+                    className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                  >
+                    {profileLoading ? <Spinner className="h-5 w-5" /> : 'Simpan Profil'}
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      console.log('Testing connection...');
+                      try {
+                        const response = await fetch(SCRIPT_URL);
+                        console.log('Test response status:', response.status);
+                        if (response.ok) {
+                          const result = await response.json();
+                          console.log('Test response data:', result);
+                          setMsg('Koneksi berhasil! Status: ' + response.status);
+                        } else {
+                          setMsg('Koneksi gagal! Status: ' + response.status);
+                        }
+                      } catch (error) {
+                        console.error('Test connection error:', error);
+                        setMsg('Koneksi gagal: ' + error.message);
+                      }
+                      setTimeout(() => setMsg(''), 3000);
+                    }}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center justify-center min-w-[100px]"
+                  >
+                    Test Koneksi
+                  </button>
+                </div>
+                {msg && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                    {msg}
+                  </div>
+                )}
+              </div>
+              
+              <div className="bg-white rounded-xl shadow p-4 space-y-4 border">
+                <h3 className="font-semibold mb-2">Ganti Password</h3>
+                <div className="space-y-2">
+                  <label className="block">Password Lama
+                    <input 
+                      type="password" 
+                      name="old" 
+                      value={passwords.old} 
+                      onChange={handlePasswordChange} 
+                      className="w-full border rounded p-2 mt-1" 
+                      placeholder="Masukkan password lama"
+                    />
+                  </label>
+                  <label className="block">Password Baru
+                    <input 
+                      type="password" 
+                      name="new" 
+                      value={passwords.new} 
+                      onChange={handlePasswordChange} 
+                      className="w-full border rounded p-2 mt-1" 
+                      placeholder="Minimal 6 karakter"
+                    />
+                  </label>
+                  <label className="block">Konfirmasi Password Baru
+                    <input 
+                      type="password" 
+                      name="confirm" 
+                      value={passwords.confirm} 
+                      onChange={handlePasswordChange} 
+                      className="w-full border rounded p-2 mt-1" 
+                      placeholder="Konfirmasi password baru"
+                    />
+                  </label>
+                </div>
+                <button 
+                  onClick={handlePasswordSave} 
+                  disabled={passwordLoading || !passwords.old || !passwords.new || !passwords.confirm}
+                  className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center min-w-[100px] mt-2"
+                >
+                  {passwordLoading ? <Spinner className="h-5 w-5" /> : 'Simpan Password'}
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        const handleChangePassword = (oldPass, newPass) => {/* Simulasi, tidak ada backend */};
+
+    </script>
+</body>
+</html>
