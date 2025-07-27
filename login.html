@@ -161,7 +161,7 @@
             useEffect(() => {
                 const isLoggedIn = localStorage.getItem('hpanel_logged_in');
                 if (isLoggedIn === 'true') {
-                    window.location.href = 'nhbiru.html';
+                    window.location.href = 'dashboard.html';
                     return;
                 }
 
@@ -276,7 +276,7 @@
                     
                     // Redirect to main app
                     setTimeout(() => {
-                        window.location.href = 'nhbiru.html';
+                        window.location.href = 'dashboard.html';
                     }, 1000);
 
                 } catch (err) {
