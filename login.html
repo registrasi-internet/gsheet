@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel Admin - Login</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f8ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#007aff',
+                            600: '#005ecb',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        'primary-hover': '#005ecb',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bg-fresh-gray { background-color: #f8fafc; }
+        .bg-fresh-white { background-color: #ffffff; }
+        .border-fresh { border-color: #e2e8f0; }
+        .text-fresh-gray { color: #64748b; }
+        .hover-fresh:hover { background-color: #f1f5f9; }
+        
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin { animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body class="bg-fresh-gray min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // SCRIPT_URL - Ganti dengan URL Google Apps Script Anda
+        const SCRIPT_URL = localStorage.getItem('hpanel_script_url') || 'https://script.google.com/macros/s/AKfycbzeDHDOGD3Gybt6mux8cPlOYnBfHl7pSYas5WEoJdkpVPjaNr_i7mKuDdaZgSsgM2mr/exec';
+
+        // Icons
+        const Eye = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+            </svg>
+        );
+
+        const EyeOff = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+        );
+
+        const AlertCircle = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+        );
+
+        const CheckCircle = (props) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22,4 12,14.01 9,11.01" />
+            </svg>
+        );
+
+        const Spinner = (props) => (
+            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <line x1="12" y1="2" x2="12" y2="6" />
+                <line x1="12" y1="18" x2="12" y2="22" />
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+                <line x1="2" y1="12" x2="6" y2="12" />
+                <line x1="18" y1="12" x2="22" y2="12" />
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+            </svg>
+        );
+
+        // Toast Component
+        function Toast({ message, type, onDismiss }) {
+            useEffect(() => {
+                const timer = setTimeout(onDismiss, 5000);
+                return () => clearTimeout(timer);
+            }, [onDismiss]);
+
+            const bgColor = type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+            const textColor = type === 'success' ? 'text-green-800' : 'text-red-800';
+            const iconColor = type === 'success' ? 'text-green-500' : 'text-red-500';
+
+            return (
+                <div className={`fixed top-4 right-4 z-50 p-4 border rounded-lg shadow-lg animate-fade-in-up ${bgColor}`}>
+                    <div className="flex items-center space-x-3">
+                        {type === 'success' ? <CheckCircle className={iconColor} /> : <AlertCircle className={iconColor} />}
+                        <span className={`font-medium ${textColor}`}>{message}</span>
+                        <button onClick={onDismiss} className="ml-4 text-gray-400 hover:text-gray-600">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main Login Component
+        function LoginApp() {
+            const [formData, setFormData] = useState({
+                email: '',
+                password: ''
+            });
+            const [showPassword, setShowPassword] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [toasts, setToasts] = useState([]);
+            const [logoUrl, setLogoUrl] = useState(() => {
+                // Coba ambil dari localStorage dulu, jika tidak ada gunakan default
+                const storedLogo = localStorage.getItem('hpanel_logo_url');
+                return storedLogo || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU";
+            });
+
+            // Check if already logged in and fetch logo
+            useEffect(() => {
+                const isLoggedIn = localStorage.getItem('hpanel_logged_in');
+                if (isLoggedIn === 'true') {
+                    window.location.href = 'nhbiru.html';
+                    return;
+                }
+
+                // Fetch logo from Google Sheet
+                const fetchLogo = async () => {
+                    try {
+                        const response = await fetch(SCRIPT_URL);
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success && result.data.profile && result.data.profile.length > 0) {
+                                const profileData = result.data.profile[0];
+                                if (profileData.logoUrl) {
+                                    setLogoUrl(profileData.logoUrl);
+                                    localStorage.setItem('hpanel_logo_url', profileData.logoUrl);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.log('Gagal mengambil logo dari server, menggunakan logo default');
+                    }
+                };
+
+                fetchLogo();
+            }, []);
+
+            const addToast = (message, type = 'error') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+            };
+
+            const removeToast = (id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+                setError(''); // Clear error when user types
+            };
+
+            const validateForm = () => {
+                if (!formData.email.trim()) {
+                    setError('Email harus diisi');
+                    return false;
+                }
+                if (!formData.password.trim()) {
+                    setError('Password harus diisi');
+                    return false;
+                }
+                if (formData.password.length < 6) {
+                    setError('Password minimal 6 karakter');
+                    return false;
+                }
+                return true;
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                
+                if (!validateForm()) return;
+
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    // Fetch admin data from Google Sheet
+                    const response = await fetch(SCRIPT_URL);
+                    if (!response.ok) {
+                        throw new Error('Gagal terhubung ke server');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.error || 'Terjadi kesalahan pada server');
+                    }
+
+                    const adminData = result.data.profile?.find(p => p.id == 1);
+                    if (!adminData) {
+                        throw new Error('Data admin tidak ditemukan');
+                    }
+
+                    // Check credentials
+                    if (formData.email.toLowerCase() !== adminData.email.toLowerCase()) {
+                        throw new Error('Email tidak terdaftar');
+                    }
+
+                    // Check password (handle both hashed and plain text)
+                    let passwordMatch = false;
+                    
+                    if (adminData.password) {
+                        // If password is hashed (SHA-256)
+                        if (adminData.password.length > 20) {
+                            // For hashed passwords, we need to hash the input and compare
+                            const hashedInput = btoa(String.fromCharCode(...new Uint8Array(
+                                await crypto.subtle.digest('SHA-256', new TextEncoder().encode(formData.password))
+                            )));
+                            passwordMatch = adminData.password === hashedInput;
+                        } else {
+                            // For plain text passwords
+                            passwordMatch = adminData.password === formData.password;
+                        }
+                    }
+
+                    if (!passwordMatch) {
+                        throw new Error('Password salah');
+                    }
+
+                    // Login successful
+                    localStorage.setItem('hpanel_logged_in', 'true');
+                    localStorage.setItem('hpanel_admin_data', JSON.stringify(adminData));
+                    addToast('Login berhasil!', 'success');
+                    
+                    // Redirect to main app
+                    setTimeout(() => {
+                        window.location.href = 'nhbiru.html';
+                    }, 1000);
+
+                } catch (err) {
+                    setError(err.message);
+                    addToast(err.message, 'error');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleForgotPassword = () => {
+                addToast('Silakan hubungi administrator untuk reset password', 'error');
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-100"></div>
+                    
+                    {/* Login Card */}
+                    <div className="relative max-w-md w-full space-y-8 animate-fade-in-up">
+                        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                            {/* Logo & Title */}
+                            <div className="text-center mb-8">
+                                <img 
+                                    src={logoUrl} 
+                                    alt="NH BIRU Logo" 
+                                    className="h-16 w-auto mx-auto mb-4"
+                                    onError={(e) => {
+                                        // Fallback jika logo gagal dimuat
+                                        e.target.src = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJB-n6s_AAeg9MxdPgoyI5ZsJu3NgS-n-kZDyg_uLLDgTosyOo6RC2iGxUdeVUQPHS5DA&usqp=CAU";
+                                    }}
+                                />
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                    Welcome Back!
+                                </h2>
+                                <p className="text-gray-600">
+                                    Masuk ke Panel Admin
+                                </p>
+                            </div>
+
+                            {/* Login Form */}
+                            <form onSubmit={handleLogin} className="space-y-6">
+                                {/* Email Field */}
+                                <div>
+                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email
+                                    </label>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                        placeholder="admin@example.com"
+                                    />
+                                </div>
+
+                                {/* Password Field */}
+                                <div>
+                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Password
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            autoComplete="current-password"
+                                            required
+                                            value={formData.password}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                            placeholder="Masukkan password"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPassword ? <EyeOff /> : <Eye />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Error Message */}
+                                {error && (
+                                    <div className="flex items-center space-x-2 text-red-600 text-sm">
+                                        <AlertCircle className="flex-shrink-0" />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
+
+                                {/* Forgot Password Link */}
+                                <div className="text-right">
+                                    <button
+                                        type="button"
+                                        onClick={handleForgotPassword}
+                                        className="text-sm text-primary-600 hover:text-primary-500 font-medium"
+                                    >
+                                        Lupa password?
+                                    </button>
+                                </div>
+
+                                {/* Login Button */}
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Spinner className="mr-2" />
+                                            Memproses...
+                                        </>
+                                    ) : (
+                                        'Masuk'
+                                    )}
+                                </button>
+                            </form>
+
+                            {/* Footer */}
+                            <div className="mt-8 text-center">
+                                <p className="text-xs text-gray-500">
+                                    © 2025 By Mas Yonok
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Toasts */}
+                    {toasts.map(toast => (
+                        <Toast
+                            key={toast.id}
+                            message={toast.message}
+                            type={toast.type}
+                            onDismiss={() => removeToast(toast.id)}
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<LoginApp />, document.getElementById('root'));
+    </script>
+</body>
+</html> 
