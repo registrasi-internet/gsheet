@@ -92,7 +92,7 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                 <div>
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white flex items-center"><i class="fas fa-users text-sky-500 mr-4"></i>Up-Selling Customer</h1>
-                    <p class="text-md text-gray-600 dark:text-gray-400 mt-2">Kelola data customer Anda dengan efisien.</p>
+                    <p class="text-md text-gray-600 dark:text-gray-400 mt-2">EXP AGUSTUS 2025.</p>
                 </div>
                 <div class="mt-4 sm:mt-0">
                     <label for="sheet-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pilih Sheet</label>
@@ -107,7 +107,6 @@
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa Hari Ini</div>
                     <div id="count-today" class="text-3xl font-bold text-sky-600 dark:text-sky-400">0</div>
                 </div>
-                <!-- [MODIFIED] Ikon disamakan -->
                 <div class="bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-alt fa-lg"></i></div>
             </div>
             <div id="card-3days" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all transform hover:-translate-y-1">
@@ -122,7 +121,6 @@
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Kedaluwarsa dalam 7 Hari</div>
                     <div id="count-7days" class="text-3xl font-bold text-orange-500 dark:text-orange-400">0</div>
                 </div>
-                <!-- [MODIFIED] Ikon disamakan -->
                 <div class="bg-orange-100 dark:bg-orange-500/20 text-orange-500 dark:text-orange-400 rounded-full h-12 w-12 flex items-center justify-center"><i class="fas fa-calendar-alt fa-lg"></i></div>
             </div>
         </div>
@@ -131,14 +129,12 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div class="relative md:col-span-1">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-search text-gray-400"></i></span>
-                    <input type="text" id="search-box" placeholder="Cari ID Pelanggan, nama, atau no. telepon..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all">
+                    <input type="text" id="search-box" placeholder="Cari ID, nama, telepon, paket, skema, atau status..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all">
                 </div>
                 <div class="md:col-span-2 flex flex-wrap justify-center md:justify-end gap-2">
                     <button id="show-all-btn" class="filter-btn active flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-list-ul"></i><span>Semua</span></button>
-                    <!-- [MODIFIED] Ikon disamakan -->
                     <button id="filter-today-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter Hari Ini</span></button>
                     <button id="filter-3days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter 3 Hari</span></button>
-                    <!-- [MODIFIED] Ikon disamakan -->
                     <button id="filter-7days-btn" class="filter-btn flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg transition-all duration-300"><i class="fas fa-calendar-alt"></i><span>Filter 7 Hari</span></button>
                 </div>
             </div>
@@ -156,94 +152,19 @@
     </div>
 
     <script>
-    // Fungsi untuk menyalin teks ke clipboard
-    window.copyToClipboard = function(text, buttonElement) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        
-        // Sembunyikan textarea agar tidak terlihat
-        textArea.style.position = "fixed";
-        textArea.style.top = "-9999px";
-        textArea.style.left = "-9999px";
-        
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            // Gunakan execCommand sebagai fallback yang andal
-            document.execCommand('copy');
-            
-            // Beri feedback visual kepada pengguna
-            const originalIconHTML = buttonElement.innerHTML;
-            buttonElement.innerHTML = '<i class="fas fa-check text-green-500"></i>';
-            buttonElement.disabled = true;
-            
-            setTimeout(() => {
-                buttonElement.innerHTML = originalIconHTML;
-                buttonElement.disabled = false;
-            }, 1500);
-
-        } catch (err) {
-            console.error('Gagal menyalin teks: ', err);
-            // Beri feedback error jika gagal
-            const originalIconHTML = buttonElement.innerHTML;
-            buttonElement.innerHTML = '<i class="fas fa-times text-red-500"></i>';
-            setTimeout(() => {
-                buttonElement.innerHTML = originalIconHTML;
-            }, 2000);
-        }
-        
-        document.body.removeChild(textArea);
-    }
-
-    window.updateDropdownColor = function(selectElement) {
-        const selectedValue = selectElement.value;
-        selectElement.classList.remove('bg-green-500', 'bg-red-500', 'text-white', 'bg-gray-200', 'dark:bg-gray-700');
-        if (selectedValue === 'DONE WHATSAPP') {
-            selectElement.classList.add('bg-green-500', 'text-white');
-        } else if (selectedValue === 'INVALID NUMBER') {
-            selectElement.classList.add('bg-red-500', 'text-white');
-        } else {
-            selectElement.classList.add('bg-gray-200', 'dark:bg-gray-700');
-        }
-    }
-
-    async function updateProgressInSheet(sheetName, rowIndex, newValue, elementId) {
-        const webAppUrl = document.getElementById('sheet-selector').dataset.webAppUrl;
-        const selectElement = document.getElementById(elementId);
-        
-        if (selectElement) selectElement.disabled = true;
-        console.log(`Mengirim update ke sheet '${sheetName}' untuk baris ${rowIndex}: ${newValue}`);
-
-        const formData = new FormData();
-        formData.append('sheetName', sheetName);
-        formData.append('rowIndex', rowIndex);
-        formData.append('newValue', newValue);
-
-        try {
-            const response = await fetch(webAppUrl, {
-                method: 'POST',
-                body: formData
-            });
-            console.log("Permintaan update berhasil dikirim!");
-        } catch (error) {
-            console.error('Gagal mengirim update ke Google Sheet:', error);
-            alert("Gagal memperbarui status. Periksa koneksi internet Anda.");
-        } finally {
-            if (selectElement) selectElement.disabled = false;
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
         // --- KONFIGURASI ---
         const webAppUrl = 'https://script.google.com/macros/s/AKfycbwhQNr2wuuxo0OxD651-_2qeLgxYCfx7dstSDP8I_X0RyCTG1hfBbeq2i5E8uhnCwxhAg/exec';
         const ROWS_PER_PAGE = 11;
+        // [DIPERBARUI] Menambahkan kolom 'Status'
         const columnsToDisplay = [
             { header: 'ID Pelanggan', key: 'contractaccount' },
             { header: 'Nama Lengkap', key: 'bp_fullname' },
             { header: 'No. WhatsApp', key: 'bp_phone' },
+            { header: 'PAKET', key: 'bundle_name' },
+            { header: 'SKEMA', key: 'modem_status' },
             { header: 'Expired Date', key: 'expireddate' },
+            { header: 'Status', key: 'status' },
             { header: 'Progress', key: 'progress' } 
         ];
 
@@ -283,11 +204,108 @@
         };
         
         ui.sheetSelector.dataset.webAppUrl = webAppUrl;
+        
+        // --- FUNGSI GLOBAL YANG DIPERLUKAN OLEH HTML ---
+        window.copyToClipboard = function(text, buttonElement) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            textArea.style.position = "fixed";
+            textArea.style.top = "-9999px";
+            textArea.style.left = "-9999px";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                const originalIconHTML = buttonElement.innerHTML;
+                buttonElement.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+                buttonElement.disabled = true;
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalIconHTML;
+                    buttonElement.disabled = false;
+                }, 1500);
+
+            } catch (err) {
+                console.error('Gagal menyalin teks: ', err);
+                const originalIconHTML = buttonElement.innerHTML;
+                buttonElement.innerHTML = '<i class="fas fa-times text-red-500"></i>';
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalIconHTML;
+                }, 2000);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+    
+        window.updateProgressInSheet = async function(sheetName, rowIndex, newValue, elementId) {
+            // --- Langkah 1: Perbarui data lokal dan UI secara instan ---
+            const dataIndex = allRowsData.findIndex(item => item.rowIndex === rowIndex);
+            if (dataIndex !== -1 && columnIndexes['progress'] !== -1) {
+                allRowsData[dataIndex].data[columnIndexes['progress']] = newValue;
+                console.log('Model data lokal telah diperbarui.');
+                
+                updateSummaryCards();
+                updateDisplay(); 
+            }
+
+            // --- Langkah 2: Kirim pembaruan ke Google Sheet di latar belakang ---
+            const webAppUrl = ui.sheetSelector.dataset.webAppUrl;
+            const postData = new URLSearchParams();
+            postData.append('sheetName', sheetName);
+            postData.append('rowIndex', rowIndex);
+            postData.append('newValue', newValue);
+            postData.append('columnName', 'Progress');
+
+            const selectElement = document.getElementById(elementId);
+            if (selectElement) {
+                selectElement.disabled = true;
+            }
+            
+            console.log(`Mengirim pembaruan ke sheet '${sheetName}' untuk baris ${rowIndex}: ${newValue}`);
+
+            try {
+                const response = await fetch(webAppUrl, {
+                    method: 'POST',
+                    body: postData,
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    console.log("Permintaan pembaruan berhasil dikirim dan dikonfirmasi!");
+                    if (selectElement) {
+                        selectElement.classList.add('ring-2', 'ring-green-500');
+                        setTimeout(() => {
+                            selectElement.classList.remove('ring-2', 'ring-green-500');
+                        }, 1500);
+                    }
+                } else {
+                    throw new Error(result.message || 'Terjadi galat yang tidak diketahui di server.');
+                }
+
+            } catch (error) {
+                console.error('Gagal mengirim pembaruan ke Google Sheet:', error);
+                if (selectElement) {
+                    selectElement.classList.add('ring-2', 'ring-red-500');
+                    setTimeout(() => {
+                        selectElement.classList.remove('ring-2', 'ring-red-500');
+                    }, 2000);
+                }
+            } finally {
+                if (selectElement) {
+                    selectElement.disabled = false;
+                }
+            }
+        }
 
         // --- FUNGSI-FUNGSI LOGIKA APLIKASI ---
         async function initializeApp() {
             try {
-                const response = await fetch(webAppUrl);
+                const response = await fetch(`${webAppUrl}?v=${new Date().getTime()}`);
                 if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
                 
                 const result = await response.json();
@@ -317,21 +335,35 @@
 
         function processData(rawData, sheetName) {
             currentSheetName = sheetName;
-            const originalHeaders = rawData.shift().map(h => h.toLowerCase().trim().replace(/^"|"$/g, '').replace(/\s+/g, ''));
+            const originalHeaders = rawData.shift().map(h => String(h || '').toLowerCase().trim().replace(/^"|"$/g, '').replace(/[\s/]+/g, '_'));
             
             allRowsData = rawData.map((row, index) => ({
                 rowIndex: index + 2,
                 data: row
             }));
 
+            columnIndexes = {};
             columnsToDisplay.forEach(col => {
-                columnIndexes[col.key] = originalHeaders.findIndex(h => h === col.key);
+                if (col.key === 'progress') {
+                    let progressIndex = originalHeaders.findIndex(h => h === 'progress');
+                    if (progressIndex === -1) {
+                        progressIndex = originalHeaders.findIndex(h => h === 'done_invalid');
+                    }
+                    columnIndexes[col.key] = progressIndex;
+                } else {
+                    columnIndexes[col.key] = originalHeaders.findIndex(h => h === col.key);
+                }
             });
             
-            const requiredKeys = ['contractaccount', 'bp_fullname', 'bp_phone', 'expireddate'];
+            // [DIPERBARUI] Menambahkan 'status' ke kolom wajib
+            const requiredKeys = ['contractaccount', 'bp_fullname', 'bp_phone', 'expireddate', 'bundle_name', 'modem_status', 'status', 'progress'];
             const missingKeys = requiredKeys.filter(key => columnIndexes[key] === -1);
             if (missingKeys.length > 0) {
-                throw new Error(`Kolom wajib (${missingKeys.join(', ').toUpperCase()}) tidak ditemukan di sheet '${sheetName}'.`);
+                const missingHeaders = missingKeys.map(k => {
+                    if (k === 'progress') return 'PROGRESS atau DONE/INVALID';
+                    return k.toUpperCase().replace('_', ' ');
+                }).join(', ');
+                throw new Error(`Kolom wajib (${missingHeaders}) tidak ditemukan di sheet '${sheetName}'. Pastikan header kolom sudah benar.`);
             }
             
             ui.loader.style.display = 'none';
@@ -355,7 +387,8 @@
             ui.errorMessage.style.display = 'none';
             
             try {
-                const response = await fetch(`${webAppUrl}?sheet=${encodeURIComponent(sheetName)}`);
+                const fetchUrl = `${webAppUrl}?sheet=${encodeURIComponent(sheetName)}&v=${new Date().getTime()}`;
+                const response = await fetch(fetchUrl);
                 if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
                 
                 const result = await response.json();
@@ -380,7 +413,11 @@
                     const idPelanggan = (row[columnIndexes.contractaccount] || '').toLowerCase();
                     const name = (row[columnIndexes.bp_fullname] || '').toLowerCase();
                     const phone = (row[columnIndexes.bp_phone] || '').toLowerCase();
-                    return idPelanggan.includes(searchTerm) || name.includes(searchTerm) || phone.includes(searchTerm);
+                    const paket = (row[columnIndexes.bundle_name] || '').toLowerCase();
+                    const skema = (row[columnIndexes.modem_status] || '').toLowerCase();
+                    // [DIPERBARUI] Menambahkan pencarian berdasarkan status
+                    const status = (row[columnIndexes.status] || '').toLowerCase();
+                    return idPelanggan.includes(searchTerm) || name.includes(searchTerm) || phone.includes(searchTerm) || paket.includes(searchTerm) || skema.includes(searchTerm) || status.includes(searchTerm);
                 });
             }
             filteredAndSearchedData = data;
@@ -425,19 +462,19 @@
                         cell.dataset.label = col.header;
                         
                         if (col.key === 'progress') {
-                            const progressValue = columnIndexes.progress !== -1 ? (rowData[columnIndexes.progress] || '').trim().toUpperCase() : '';
+                            const progressValue = columnIndexes['progress'] !== -1 ? (rowData[columnIndexes['progress']] || '').trim().toUpperCase() : '';
                             let bgColor = 'bg-gray-200 dark:bg-gray-700';
                             let textColor = '';
-                            if (progressValue === 'DONE WHATSAPP') { bgColor = 'bg-green-500'; textColor = 'text-white'; } 
-                            else if (progressValue === 'INVALID NUMBER') { bgColor = 'bg-red-500'; textColor = 'text-white'; }
+                            if (progressValue === 'DONE') { bgColor = 'bg-green-500'; textColor = 'text-white'; } 
+                            else if (progressValue === 'INVALID') { bgColor = 'bg-red-500'; textColor = 'text-white'; }
                             
                             const selectId = `progress-select-${currentSheetName}-${originalRowIndex}`;
                             cell.innerHTML = `
                                 <select id="${selectId}" class="p-2 rounded-md border-0 ${bgColor} ${textColor} text-xs font-semibold transition-colors duration-200 appearance-none text-center w-full" 
-                                        onchange="updateDropdownColor(this); updateProgressInSheet('${currentSheetName}', ${originalRowIndex}, this.value, '${selectId}');">
+                                        onchange="window.updateProgressInSheet('${currentSheetName}', ${originalRowIndex}, this.value, '${selectId}');">
                                     <option value="" ${progressValue === '' ? 'selected' : ''}>Pilih Status</option>
-                                    <option value="DONE WHATSAPP" ${progressValue === 'DONE WHATSAPP' ? 'selected' : ''}>DONE WHATSAPP</option>
-                                    <option value="INVALID NUMBER" ${progressValue === 'INVALID NUMBER' ? 'selected' : ''}>INVALID NUMBER</option>
+                                    <option value="DONE" ${progressValue === 'DONE' ? 'selected' : ''}>DONE</option>
+                                    <option value="INVALID" ${progressValue === 'INVALID' ? 'selected' : ''}>INVALID</option>
                                 </select>
                             `;
                         } else if (col.key === 'contractaccount') {
@@ -540,47 +577,70 @@
             const start = (currentPage - 1) * ROWS_PER_PAGE;
             return filteredAndSearchedData.slice(start, start + ROWS_PER_PAGE);
         }
-        
+
         function formatPhoneNumber(phone) {
-            const cleaned = String(phone).trim().replace(/\D/g, '');
-            if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
-            if (cleaned.startsWith('62')) return cleaned;
-            if (cleaned.startsWith('8') && cleaned.length >= 9) return '62' + cleaned;
-            return cleaned;
+            let cleaned = ('' + phone).replace(/\D/g, '');
+            if (cleaned.startsWith('0')) {
+                return '62' + cleaned.substring(1);
+            }
+            if (cleaned.startsWith('62')) {
+                return cleaned;
+            }
+            return '62' + cleaned;
         }
 
         // --- EVENT LISTENERS ---
-        ui.searchBox.addEventListener('input', () => { currentPage = 1; updateDisplay(); });
-        
-        Object.values(ui.buttons).forEach(button => button.addEventListener('click', (e) => {
-            const newFilter = e.currentTarget.id.replace('filter-', '').replace('-btn', '');
-            activeFilter = newFilter === 'show-all' ? 'all' : newFilter;
-            currentPage = 1;
-            updateDisplay();
-        }));
-        
-        ui.cards.today.addEventListener('click', () => { activeFilter = 'today'; currentPage = 1; updateDisplay(); });
-        ui.cards.threeDays.addEventListener('click', () => { activeFilter = '3days'; currentPage = 1; updateDisplay(); });
-        ui.cards.sevenDays.addEventListener('click', () => { activeFilter = '7days'; currentPage = 1; updateDisplay(); });
-        
-        ui.paginationControls.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button || button.disabled) return;
-            const pageAction = button.dataset.page;
-            if (pageAction === 'prev') currentPage--;
-            if (pageAction === 'next') currentPage++;
-            renderTable(getCurrentPageData());
-            renderPagination();
-        });
-
         ui.sheetSelector.addEventListener('change', (e) => {
             fetchAndProcessData(e.target.value);
         });
 
-        // --- INISIALISASI APLIKASI ---
+        ui.searchBox.addEventListener('input', () => {
+            currentPage = 1;
+            updateDisplay();
+        });
+
+        ui.paginationControls.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button) return;
+            const pageAction = button.dataset.page;
+            if (pageAction === 'prev' && currentPage > 1) currentPage--;
+            if (pageAction === 'next' && currentPage < Math.ceil(filteredAndSearchedData.length / ROWS_PER_PAGE)) currentPage++;
+            renderTable(getCurrentPageData());
+            renderPagination();
+        });
+
+        const filterHandler = (filterType) => {
+            activeFilter = filterType;
+            currentPage = 1;
+            updateDisplay();
+            const filterInfo = document.getElementById('filter-info');
+            const filterName = {
+                'today': 'kedaluwarsa hari ini',
+                '3days': 'kedaluwarsa dalam 3 hari',
+                '7days': 'kedaluwarsa dalam 7 hari'
+            }[filterType];
+            
+            if (filterType !== 'all') {
+                filterInfo.textContent = `Menampilkan data ${filterName}.`;
+                filterInfo.style.opacity = '1';
+            } else {
+                filterInfo.style.opacity = '0';
+                setTimeout(() => { filterInfo.textContent = ''; }, 300);
+            }
+        };
+
+        ui.buttons.showAll.addEventListener('click', () => filterHandler('all'));
+        ui.buttons.filterToday.addEventListener('click', () => filterHandler('today'));
+        ui.buttons.filter3Days.addEventListener('click', () => filterHandler('3days'));
+        ui.buttons.filter7Days.addEventListener('click', () => filterHandler('7days'));
+        
+        ui.cards.today.addEventListener('click', () => filterHandler('today'));
+        ui.cards.threeDays.addEventListener('click', () => filterHandler('3days'));
+        ui.cards.sevenDays.addEventListener('click', () => filterHandler('7days'));
+
+        // --- INISIALISASI ---
         initializeApp();
     });
     </script>
-
 </body>
 </html>
